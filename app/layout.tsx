@@ -8,33 +8,33 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
-  themeColor: '#2563eb',
+  themeColor: '#6B21A8',
 };
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.multimeysupplies.com';
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.gsgbrands.com.gh';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "MultiMey Supplies | Quality Products & Supplies",
-    template: "%s | MultiMey Supplies"
+    default: "GSG Convenience Goods | Premium Convenience Shopping in Ghana",
+    template: "%s | GSG Convenience Goods"
   },
-  description: "Shop dresses, electronics, bags, shoes & more at MultiMey Supplies. Locally sourced and imported quality products delivered across Ghana from Accra.",
+  description: "Premium convenience goods delivered across Ghana. GSG Convenience Goods—your trusted source for everyday essentials and quality products from Accra.",
   keywords: [
-    "MultiMey Supplies",
+    "GSG Convenience Goods",
+    "GSG",
+    "gsgbrands.com.gh",
+    "Convenience Shopping Ghana",
     "Online Store Ghana",
-    "Buy Dresses Online Ghana",
-    "Electronics Ghana",
-    "Bags and Shoes Accra",
-    "China Import Ghana",
-    "Affordable Fashion Ghana",
+    "Everyday Essentials Accra",
+    "Premium Products Ghana",
     "Accra Online Shopping",
     "Ghana E-commerce",
     "Quality Products Accra"
   ],
-  authors: [{ name: "MultiMey Supplies" }],
-  creator: "MultiMey Supplies",
-  publisher: "MultiMey Supplies",
+  authors: [{ name: "GSG Convenience Goods" }],
+  creator: "GSG Convenience Goods",
+  publisher: "GSG Convenience Goods",
   robots: {
     index: true,
     follow: true,
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'MultiMey Supplies',
+    title: 'GSG Shop',
   },
   formatDetection: {
     telephone: true,
@@ -81,24 +81,24 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_GH",
     url: siteUrl,
-    title: "MultiMey Supplies | Quality Products & Supplies",
-    description: "Shop dresses, electronics, bags, shoes and more. Locally sourced and China-imported quality products delivered across Ghana.",
-    siteName: "MultiMey Supplies",
+    title: "GSG Convenience Goods | Premium Convenience Shopping in Ghana",
+    description: "Premium convenience goods delivered across Ghana. Your trusted source for everyday essentials and quality products from Accra.",
+    siteName: "GSG Convenience Goods",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "MultiMey Supplies",
+        alt: "GSG Convenience Goods",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "MultiMey Supplies | Quality Products & Supplies",
-    description: "Dresses, electronics, bags, shoes and more. Quality products delivered across Ghana from Accra.",
+    title: "GSG Convenience Goods | Premium Convenience Shopping in Ghana",
+    description: "Premium convenience goods delivered across Ghana. Your trusted source for everyday essentials and quality products from Accra.",
     images: ["/og-image.png"],
-    creator: "@mey_phua",
+    creator: "@gsgbrandsgh",
   },
   alternates: {
     canonical: siteUrl,
@@ -119,12 +119,12 @@ export default function RootLayout({
     <html lang="en">
       <head>
         {/* PWA Meta Tags */}
-        <meta name="theme-color" content="#2563eb" />
+        <meta name="theme-color" content="#6B21A8" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="MultiMey Supplies" />
+        <meta name="apple-mobile-web-app-title" content="GSG Shop" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="msapplication-TileColor" content="#2563eb" />
+        <meta name="msapplication-TileColor" content="#6B21A8" />
         <meta name="msapplication-tap-highlight" content="no" />
 
         {/* Apple Touch Icons */}
@@ -151,10 +151,10 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Organization",
-              "name": "MultiMey Supplies",
-              "url": "https://www.multimeysupplies.com",
-              "logo": "https://www.multimeysupplies.com/logo.png",
-              "description": "Shop dresses, electronics, bags, shoes and more at MultiMey Supplies. Locally sourced and China-imported quality products delivered across Ghana from Accra.",
+              "name": "GSG Convenience Goods",
+              "url": "https://www.gsgbrands.com.gh",
+              "logo": "https://www.gsgbrands.com.gh/logo.png",
+              "description": "Premium convenience goods delivered across Ghana. GSG Convenience Goods—your trusted source for everyday essentials and quality products from Accra.",
               "address": {
                 "@type": "PostalAddress",
                 "addressCountry": "GH",

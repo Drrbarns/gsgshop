@@ -26,16 +26,16 @@ function FooterSection({ title, children }: { title: string, children: React.Rea
 export default function Footer() {
   const { getSetting } = useCMS();
 
-  const siteName = getSetting('site_name') || 'MultiMey Supplies';
-  const siteTagline = getSetting('site_tagline') || 'Dresses, Electronics, Bags, Shoes & More.';
+  const siteName = getSetting('site_name') || 'GSG Convenience Goods';
+  const siteTagline = getSetting('site_tagline') || 'Premium Convenience Shopping in Ghana';
   const contactEmail = getSetting('contact_email') || '';
-  const contactPhone = getSetting('contact_phone') || '+233209597443';
+  const contactPhone = getSetting('contact_phone') || '+233 (0) 246 033 792';
   const socialFacebook = getSetting('social_facebook') || '';
-  const socialInstagram = getSetting('social_instagram') || 'https://www.instagram.com/mey_phua';
-  const socialTwitter = getSetting('social_twitter') || 'https://x.com/mey_phua';
-  const socialTiktok = getSetting('social_tiktok') || 'https://www.tiktok.com/@mey_phua';
-  const socialSnapchat = getSetting('social_snapchat') || 'https://snapchat.com/t/eL9wfuQa';
-  const socialYoutube = getSetting('social_youtube') || 'https://youtube.com/@mey_phua';
+  const socialInstagram = getSetting('social_instagram') || 'https://www.instagram.com/gsgbrandsgh';
+  const socialTwitter = getSetting('social_twitter') || 'https://x.com/gsgbrandsgh';
+  const socialTiktok = getSetting('social_tiktok') || 'https://www.tiktok.com/@gsgbrandsgh';
+  const socialSnapchat = getSetting('social_snapchat') || '';
+  const socialYoutube = getSetting('social_youtube') || '';
 
   return (
     <footer className="relative mt-12 z-0">

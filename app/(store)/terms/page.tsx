@@ -20,7 +20,7 @@ export default function TermsPage() {
               Agreement to Terms
             </h2>
             <p className="text-gray-600 leading-relaxed mb-4">
-              By accessing and using this website (multimeysupplies.com), you accept and agree to be bound by these Terms and Conditions. If you do not agree with any part of these terms, you must not use our website or services.
+              By accessing and using this website (gsgbrands.com.gh), you accept and agree to be bound by these Terms and Conditions. If you do not agree with any part of these terms, you must not use our website or services.
             </p>
             <p className="text-gray-600 leading-relaxed bg-gray-50 p-6 rounded-2xl border border-gray-100">
               These terms apply to all visitors, users, and customers who access or use our service. We reserve the right to update or modify these terms at any time without prior notice. Your continued use of the website following any changes indicates your acceptance of the new terms.
@@ -163,7 +163,7 @@ export default function TermsPage() {
                   </div>
                   <div>
                     <p className="font-bold text-gsg-black text-lg">Email</p>
-                    <a href="mailto:support@multimeysupplies.com" className="text-gsg-purple hover:underline font-medium">support@multimeysupplies.com</a>
+                    <a href="mailto:support@gsgbrands.com.gh" className="text-gsg-purple hover:underline font-medium">support@gsgbrands.com.gh</a>
                   </div>
                 </div>
 
@@ -183,7 +183,7 @@ export default function TermsPage() {
                   </div>
                   <div>
                     <p className="font-bold text-gsg-black text-lg">Address</p>
-                    <p className="text-gray-600 font-medium">MultiMey Supplies<br />Accra, Ghana</p>
+                    <p className="text-gray-600 font-medium">GSG Convenience Goods<br />Accra, Ghana</p>
                   </div>
                 </div>
               </div>

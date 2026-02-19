@@ -3,10 +3,10 @@ import { supabase } from '@/lib/supabase';
 import { escapeHtml } from '@/lib/sanitize';
 
 const resend = new Resend(process.env.RESEND_API_KEY || 'missing_api_key');
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@standardecom.com';
-const EMAIL_FROM = process.env.EMAIL_FROM || 'MultiMey Supplies <noreply@multimeysupplies.com>';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@gsgbrands.com.gh';
+const EMAIL_FROM = process.env.EMAIL_FROM || 'GSG Convenience Goods <noreply@gsgbrands.com.gh>';
 const BRAND = {
-    name: 'MultiMey Supplies',
+    name: 'GSG Convenience Goods',
     color: '#2563eb',
     colorLight: '#eff6ff',
     colorDark: '#064e3b',
@@ -154,7 +154,7 @@ export async function sendSMS({ to, message }: { to: string; message: string }) 
             },
             body: JSON.stringify({
                 type: 1,
-                senderid: 'MultiMey',
+                senderid: 'GSG',
                 messages: [
                     {
                         recipient: recipient,
@@ -296,7 +296,7 @@ ${emailButton('View Order in Admin', `${baseUrl}/admin/orders/${id}`)}
     if (phone) {
         const smsMessage = trackingNumber
             ? `Hi ${name}, your order #${order_number || id} is confirmed! Tracking: ${trackingNumber}. Track here: ${trackingUrl}${shippingNotesSms}`
-            : `Hi ${name}, your order #${order_number || id} at MultiMey Supplies is confirmed! Track here: ${trackingUrl}${shippingNotesSms}`;
+            : `Hi ${name}, your order #${order_number || id} at GSG Convenience Goods is confirmed! Track here: ${trackingUrl}${shippingNotesSms}`;
 
         await sendSMS({
             to: phone,
@@ -438,7 +438,7 @@ ${emailButton('Start Shopping', `${BRAND.url}/shop`)}
     if (phone) {
         await sendSMS({
             to: phone,
-            message: `Welcome ${firstName}! Thanks for joining MultiMey Supplies.`
+            message: `Welcome ${firstName}! Thanks for joining GSG Convenience Goods.`
         });
     }
 }
