@@ -1,0 +1,292 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import MiniCart from './MiniCart';
+import { useCart } from '@/context/CartContext';
+import { supabase } from '@/lib/supabase';
+
+const MAIN_NAV = [
+  { label: 'Home', href: '/' },
+  { label: 'Shop All', href: '/shop' },
+  { label: 'Categories', href: '/categories' },
+  { label: 'Track Order', href: '/order-tracking' },
+  { label: 'Contact', href: '/contact' },
+];
+
+const CATEGORY_NAV = [
+  { label: 'Convenience Goods', href: '/shop' },
+  { label: 'Food Items', href: '/shop?category=food-items' },
+  { label: 'Nonfood Items', href: '/shop?category=nonfood' },
+  { label: 'Personal Care', href: '/shop?category=personal-household-care' },
+  { label: 'Occasions', href: '/shop?category=occasions-holidays' },
+  { label: 'Gift Cards', href: '/gift-card' },
+];
+
+export default function GSGHeader() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [user, setUser] = useState<any>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { cartCount, isCartOpen, setIsCartOpen } = useCart();
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null);
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
+
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      window.location.href = `/shop?search=${encodeURIComponent(searchQuery.trim())}`;
+    }
+  };
+
+  return (
+    <>
+      {/* Top Utility Bar */}
+      <div className="bg-gsg-purple-dark text-white text-xs py-2 hidden md:block">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+          <div className="flex gap-4">
+            <span>Welcome to GSG Brands MainHome</span>
+            <span className="text-white/40">|</span>
+            <a href="tel:+233246033792" className="hover:text-gsg-accent transition-colors">Call: +233 (0) 246 033 792</a>
+          </div>
+          <div className="flex gap-4">
+            <Link href="/help" className="hover:text-gsg-accent transition-colors">Help Center</Link>
+            <span className="text-white/40">|</span>
+            <Link href="/shipping" className="hover:text-gsg-accent transition-colors">Shipping & Returns</Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Header */}
+      <header className={`bg-white sticky top-0 z-50 transition-shadow duration-300 ${isScrolled ? 'shadow-md' : 'border-b border-gray-100'}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="py-4 flex items-center justify-between gap-4 md:gap-8">
+            {/* Logo */}
+            <div className="flex items-center gap-4">
+              <button 
+                type="button" 
+                className="lg:hidden text-gsg-black p-1"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                <i className="ri-menu-line text-2xl" />
+              </button>
+              <Link href="/" className="flex items-center gap-2 group">
+                <div className="relative w-8 h-8 md:w-10 md:h-10">
+                   <Image src="/logo.svg" alt="GSG Logo" fill className="object-contain" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-bold text-xl md:text-2xl text-gsg-purple leading-none tracking-tight group-hover:text-gsg-purple-dark transition-colors">GSG</span>
+                  <span className="text-[0.6rem] md:text-xs font-medium text-gray-500 uppercase tracking-wider leading-none">Convenience Goods</span>
+                </div>
+              </Link>
+            </div>
+
+            {/* Search Bar - Desktop */}
+            <div className="hidden md:flex flex-1 max-w-2xl">
+              <form onSubmit={handleSearch} className="w-full relative group">
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search for products, brands and more..."
+                  className="w-full pl-5 pr-12 py-3 rounded-full bg-gray-100 text-gsg-black placeholder:text-gray-400 text-sm border-2 border-transparent focus:bg-white focus:border-gsg-purple focus:ring-0 transition-all"
+                />
+                <button 
+                  type="submit"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-gsg-purple text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-gsg-purple-dark transition-colors shadow-sm"
+                  aria-label="Search"
+                >
+                  <i className="ri-search-line text-sm" />
+                </button>
+              </form>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2 md:gap-6">
+              <button 
+                type="button"
+                className="md:hidden p-2 text-gsg-black"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)} // Reusing mobile menu for search on mobile for now or add separate search toggle
+              >
+                <i className="ri-search-line text-xl" />
+              </button>
+
+              <Link href={user ? '/account' : '/auth/login'} className="hidden md:flex flex-col items-center group">
+                <div className="relative p-1">
+                  <i className="ri-user-line text-2xl text-gray-600 group-hover:text-gsg-purple transition-colors" />
+                </div>
+                <span className="text-xs font-medium text-gray-500 group-hover:text-gsg-purple transition-colors">{user ? 'Account' : 'Login'}</span>
+              </Link>
+
+              <Link href="/wishlist" className="hidden md:flex flex-col items-center group">
+                <div className="relative p-1">
+                  <i className="ri-heart-line text-2xl text-gray-600 group-hover:text-gsg-purple transition-colors" />
+                </div>
+                <span className="text-xs font-medium text-gray-500 group-hover:text-gsg-purple transition-colors">Wishlist</span>
+              </Link>
+
+              <button 
+                type="button"
+                className="flex flex-col items-center group relative"
+                onClick={() => setIsCartOpen(!isCartOpen)}
+              >
+                <div className="relative p-1">
+                  <i className="ri-shopping-bag-line text-2xl text-gray-600 group-hover:text-gsg-purple transition-colors" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full bg-gsg-purple text-white text-xs font-bold border-2 border-white">
+                      {cartCount}
+                    </span>
+                  )}
+                </div>
+                <span className="hidden md:block text-xs font-medium text-gray-500 group-hover:text-gsg-purple transition-colors">Cart</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Navigation Bar - Desktop */}
+          <div className="hidden lg:flex items-center justify-between border-t border-gray-100 py-3">
+            {/* Categories */}
+            <nav className="flex items-center gap-8">
+              <div className="relative group">
+                <button className="flex items-center gap-2 font-semibold text-gsg-black hover:text-gsg-purple transition-colors">
+                  <i className="ri-layout-grid-fill" />
+                  All Categories
+                </button>
+                {/* Dropdown could go here */}
+              </div>
+              <div className="h-4 w-px bg-gray-200" />
+              {CATEGORY_NAV.map((item) => (
+                <Link 
+                  key={item.label} 
+                  href={item.href}
+                  className="text-sm font-medium text-gray-600 hover:text-gsg-purple transition-colors relative group"
+                >
+                  {item.label}
+                  <span className="absolute inset-x-0 -bottom-3 h-0.5 bg-gsg-purple scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+                </Link>
+              ))}
+            </nav>
+
+            {/* Quick Links */}
+            <div className="flex items-center gap-6">
+              <Link href="/shipping#sole-express" className="flex items-center gap-2 text-sm font-medium text-gsg-purple hover:text-gsg-purple-dark">
+                <i className="ri-flashlight-fill" />
+                Sole Express
+              </Link>
+              <a href="https://shopper.gsgbrands.com.gh" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm font-medium text-orange-500 hover:text-orange-600">
+                <i className="ri-vip-crown-fill" />
+                Personal Shopper
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Menu Overlay */}
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+            <div className="absolute top-0 left-0 bottom-0 w-[80%] max-w-sm bg-white shadow-xl flex flex-col">
+              <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gsg-purple text-white">
+                <span className="font-bold text-lg">Menu</span>
+                <button onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-white/10 rounded-full">
+                  <i className="ri-close-line text-2xl" />
+                </button>
+              </div>
+              
+              <div className="p-4 border-b border-gray-100">
+                <form onSubmit={(e) => { handleSearch(e); setMobileMenuOpen(false); }}>
+                  <div className="relative">
+                    <input
+                      type="search"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search..."
+                      className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-100 border-none focus:ring-2 focus:ring-gsg-purple"
+                    />
+                    <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  </div>
+                </form>
+              </div>
+
+              <div className="flex-1 overflow-y-auto py-4">
+                <nav className="flex flex-col">
+                  {MAIN_NAV.map((item) => (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      className="px-6 py-3 text-gray-700 hover:bg-gray-50 hover:text-gsg-purple font-medium flex items-center justify-between"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {item.label}
+                      <i className="ri-arrow-right-s-line text-gray-400" />
+                    </Link>
+                  ))}
+                  <div className="my-2 border-t border-gray-100" />
+                  <div className="px-6 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Categories</div>
+                  {CATEGORY_NAV.map((item) => (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      className="px-6 py-3 text-gray-700 hover:bg-gray-50 hover:text-gsg-purple font-medium flex items-center justify-between"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {item.label}
+                      <i className="ri-arrow-right-s-line text-gray-400" />
+                    </Link>
+                  ))}
+                </nav>
+              </div>
+
+              <div className="p-4 border-t border-gray-100 bg-gray-50">
+                {!user ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    <Link 
+                      href="/auth/login" 
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                    >
+                      Log in
+                    </Link>
+                    <Link 
+                      href="/auth/signup" 
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-gsg-purple hover:bg-gsg-purple-dark"
+                    >
+                      Sign up
+                    </Link>
+                  </div>
+                ) : (
+                  <Link 
+                    href="/account"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-center gap-2 w-full px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    <i className="ri-user-line" />
+                    My Account
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <MiniCart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      </header>
+    </>
+  );
+}
