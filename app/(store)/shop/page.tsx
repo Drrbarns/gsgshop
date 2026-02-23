@@ -47,7 +47,9 @@ function ShopContent() {
         const res = await fetch('/api/storefront/categories');
         if (res.ok) {
           const data = await res.json();
-          if (data) setCategories(data);
+          if (data && Array.isArray(data) && data.length > 0) {
+            setCategories([{ id: 'all', name: 'All Products', slug: 'all', parent_id: null }, ...data]);
+          }
         }
       } catch (err) {
         console.error('Error fetching categories:', err);
