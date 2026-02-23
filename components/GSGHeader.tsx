@@ -38,6 +38,7 @@ export default function GSGHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [categories, setCategories] = useState<CategoryItem[]>(FALLBACK_CATEGORIES);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [megaMenuOpen, setMegaMenuOpen] = useState(false);
 
   const toggleCategory = useCallback((label: string) => {
     setExpandedCategories(prev => {
@@ -59,6 +60,7 @@ export default function GSGHeader() {
 
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
+      if (window.scrollY > 50) setMegaMenuOpen(false);
     };
     window.addEventListener('scroll', handleScroll);
 
@@ -215,44 +217,16 @@ export default function GSGHeader() {
 
           {/* Navigation Bar - Desktop */}
           <div className="hidden lg:flex items-center justify-between border-t border-gray-100 py-3">
-            {/* Categories */}
             <nav className="flex items-center gap-8">
-              <div className="relative group">
-                <button className="flex items-center gap-2 font-semibold text-gsg-black hover:text-gsg-purple transition-colors">
-                  <i className="ri-layout-grid-fill" />
+              <div className="relative">
+                <button
+                  onClick={() => setMegaMenuOpen(!megaMenuOpen)}
+                  className={`flex items-center gap-2 font-semibold transition-colors ${megaMenuOpen ? 'text-gsg-purple' : 'text-gsg-black hover:text-gsg-purple'}`}
+                >
+                  <i className={`${megaMenuOpen ? 'ri-close-line' : 'ri-layout-grid-fill'} transition-transform`} />
                   All Categories
+                  <i className={`ri-arrow-down-s-line text-sm transition-transform ${megaMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
-                {/* Desktop Mega Dropdown */}
-                <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <div className="bg-white rounded-xl shadow-xl border border-gray-100 py-3 min-w-[240px]">
-                    {categories.map((cat) => (
-                      <div key={cat.label} className="relative group/item">
-                        <Link
-                          href={cat.href}
-                          className="flex items-center justify-between px-5 py-2.5 text-sm text-gray-700 hover:bg-gsg-purple/5 hover:text-gsg-purple transition-colors"
-                        >
-                          <span className="font-medium">{cat.label}</span>
-                          {cat.children.length > 0 && <i className="ri-arrow-right-s-line text-gray-400" />}
-                        </Link>
-                        {cat.children.length > 0 && (
-                          <div className="absolute left-full top-0 pl-1 opacity-0 invisible group-hover/item:opacity-100 group-hover/item:visible transition-all duration-200">
-                            <div className="bg-white rounded-xl shadow-xl border border-gray-100 py-3 min-w-[220px]">
-                              {cat.children.map((sub) => (
-                                <Link
-                                  key={sub.label}
-                                  href={sub.href}
-                                  className="block px-5 py-2.5 text-sm text-gray-700 hover:bg-gsg-purple/5 hover:text-gsg-purple transition-colors font-medium"
-                                >
-                                  {sub.label}
-                                </Link>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
               <div className="h-4 w-px bg-gray-200" />
               {categories.slice(0, 5).map((item) => (
@@ -283,7 +257,6 @@ export default function GSGHeader() {
               ))}
             </nav>
 
-            {/* Quick Links */}
             <div className="flex items-center gap-6">
               <Link href="/shipping#sole-express" className="flex items-center gap-2 text-sm font-medium text-gsg-purple hover:text-gsg-purple-dark">
                 <i className="ri-flashlight-fill" />
@@ -295,6 +268,75 @@ export default function GSGHeader() {
               </a>
             </div>
           </div>
+        </div>
+
+        {/* Mega Menu Dropdown - Full Width */}
+        {megaMenuOpen && (
+          <>
+            <div className="fixed inset-0 bg-black/30 z-40 top-[140px]" onClick={() => setMegaMenuOpen(false)} />
+            <div className="hidden lg:block absolute left-0 right-0 bg-white border-t border-gray-100 shadow-2xl z-50 animate-fade-in-up">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="grid grid-cols-5 gap-8">
+                  {categories.map((cat) => (
+                    <div key={cat.label}>
+                      <Link
+                        href={cat.href}
+                        onClick={() => setMegaMenuOpen(false)}
+                        className="flex items-center gap-2 font-bold text-gsg-black hover:text-gsg-purple transition-colors mb-4 pb-3 border-b-2 border-gsg-purple/20"
+                      >
+                        <span>{cat.label}</span>
+                        <i className="ri-arrow-right-up-line text-xs text-gsg-purple opacity-0 group-hover:opacity-100" />
+                      </Link>
+                      {cat.children.length > 0 && (
+                        <ul className="space-y-2">
+                          {cat.children.map((sub) => (
+                            <li key={sub.label}>
+                              <Link
+                                href={sub.href}
+                                onClick={() => setMegaMenuOpen(false)}
+                                className="text-sm text-gray-600 hover:text-gsg-purple hover:pl-1 transition-all flex items-center gap-2 group/sub"
+                              >
+                                <span className="w-1 h-1 rounded-full bg-gray-300 group-hover/sub:bg-gsg-purple transition-colors" />
+                                {sub.label}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <Link
+                        href={cat.href}
+                        onClick={() => setMegaMenuOpen(false)}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-gsg-purple hover:text-gsg-purple-dark mt-4 transition-colors"
+                      >
+                        View All <i className="ri-arrow-right-line" />
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between">
+                  <Link
+                    href="/categories"
+                    onClick={() => setMegaMenuOpen(false)}
+                    className="inline-flex items-center gap-2 text-sm font-bold text-gsg-purple hover:text-gsg-purple-dark transition-colors"
+                  >
+                    <i className="ri-apps-2-line" />
+                    Browse All Categories
+                    <i className="ri-arrow-right-line" />
+                  </Link>
+                  <Link
+                    href="/shop"
+                    onClick={() => setMegaMenuOpen(false)}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-gsg-purple text-white text-sm font-bold rounded-full hover:bg-gsg-purple-dark transition-colors shadow-md hover:shadow-lg"
+                  >
+                    <i className="ri-shopping-bag-line" />
+                    Shop All Products
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
         </div>
 
         {/* Mobile Menu Overlay */}
