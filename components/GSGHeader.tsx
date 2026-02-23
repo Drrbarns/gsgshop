@@ -337,7 +337,6 @@ export default function GSGHeader() {
             </div>
           </>
         )}
-        </div>
 
         {/* Mobile Menu Overlay */}
         {mobileMenuOpen && (
