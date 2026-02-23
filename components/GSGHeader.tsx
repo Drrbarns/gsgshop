@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import MiniCart from './MiniCart';
@@ -15,14 +15,20 @@ const MAIN_NAV = [
   { label: 'Contact', href: '/contact' },
 ];
 
-const CATEGORY_NAV = [
-  { label: 'Convenience Goods', href: '/shop' },
-  { label: 'Food Items', href: '/shop?category=food-items' },
-  { label: 'Nonfood Items', href: '/shop?category=nonfood' },
-  { label: 'Personal Care', href: '/shop?category=personal-household-care' },
-  { label: 'Occasions', href: '/shop?category=occasions-holidays' },
-  { label: 'Gift Cards', href: '/gift-card' },
+const FALLBACK_CATEGORIES = [
+  { label: 'Convenience Goods', href: '/shop', children: [] },
+  { label: 'Food Items', href: '/shop?category=food-items', children: [] },
+  { label: 'Nonfood Items', href: '/shop?category=nonfood', children: [] },
+  { label: 'Personal Care', href: '/shop?category=personal-household-care', children: [] },
+  { label: 'Occasions', href: '/shop?category=occasions-holidays', children: [] },
+  { label: 'Gift Cards', href: '/gift-card', children: [] },
 ];
+
+interface CategoryItem {
+  label: string;
+  href: string;
+  children: CategoryItem[];
+}
 
 export default function GSGHeader() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,6 +36,20 @@ export default function GSGHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { cartCount, isCartOpen, setIsCartOpen } = useCart();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [categories, setCategories] = useState<CategoryItem[]>(FALLBACK_CATEGORIES);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  const toggleCategory = useCallback((label: string) => {
+    setExpandedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
@@ -41,6 +61,41 @@ export default function GSGHeader() {
       setIsScrolled(window.scrollY > 10);
     };
     window.addEventListener('scroll', handleScroll);
+
+    // Fetch categories from DB
+    const fetchCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('id, name, slug, parent_id, status, position, image_url')
+          .eq('status', 'active')
+          .order('position', { ascending: true });
+
+        if (error || !data || data.length === 0) return;
+
+        const parentCategories = data.filter(c => !c.parent_id);
+        const tree: CategoryItem[] = parentCategories.map(parent => ({
+          label: parent.name,
+          href: `/shop?category=${parent.slug}`,
+          children: data
+            .filter(c => c.parent_id === parent.id)
+            .map(child => ({
+              label: child.name,
+              href: `/shop?category=${child.slug}`,
+              children: [],
+            })),
+        }));
+
+        if (tree.length > 0) {
+          setCategories(tree);
+        }
+      } catch (err) {
+        // Keep fallback categories on error
+      }
+    };
+
+    fetchCategories();
+
     return () => {
       subscription.unsubscribe();
       window.removeEventListener('scroll', handleScroll);
@@ -167,18 +222,64 @@ export default function GSGHeader() {
                   <i className="ri-layout-grid-fill" />
                   All Categories
                 </button>
-                {/* Dropdown could go here */}
+                {/* Desktop Mega Dropdown */}
+                <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="bg-white rounded-xl shadow-xl border border-gray-100 py-3 min-w-[240px]">
+                    {categories.map((cat) => (
+                      <div key={cat.label} className="relative group/item">
+                        <Link
+                          href={cat.href}
+                          className="flex items-center justify-between px-5 py-2.5 text-sm text-gray-700 hover:bg-gsg-purple/5 hover:text-gsg-purple transition-colors"
+                        >
+                          <span className="font-medium">{cat.label}</span>
+                          {cat.children.length > 0 && <i className="ri-arrow-right-s-line text-gray-400" />}
+                        </Link>
+                        {cat.children.length > 0 && (
+                          <div className="absolute left-full top-0 pl-1 opacity-0 invisible group-hover/item:opacity-100 group-hover/item:visible transition-all duration-200">
+                            <div className="bg-white rounded-xl shadow-xl border border-gray-100 py-3 min-w-[220px]">
+                              {cat.children.map((sub) => (
+                                <Link
+                                  key={sub.label}
+                                  href={sub.href}
+                                  className="block px-5 py-2.5 text-sm text-gray-700 hover:bg-gsg-purple/5 hover:text-gsg-purple transition-colors font-medium"
+                                >
+                                  {sub.label}
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div className="h-4 w-px bg-gray-200" />
-              {CATEGORY_NAV.map((item) => (
-                <Link 
-                  key={item.label} 
-                  href={item.href}
-                  className="text-sm font-medium text-gray-600 hover:text-gsg-purple transition-colors relative group"
-                >
-                  {item.label}
-                  <span className="absolute inset-x-0 -bottom-3 h-0.5 bg-gsg-purple scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
-                </Link>
+              {categories.slice(0, 5).map((item) => (
+                <div key={item.label} className="relative group/nav">
+                  <Link 
+                    href={item.href}
+                    className="text-sm font-medium text-gray-600 hover:text-gsg-purple transition-colors relative"
+                  >
+                    {item.label}
+                    <span className="absolute inset-x-0 -bottom-3 h-0.5 bg-gsg-purple scale-x-0 group-hover/nav:scale-x-100 transition-transform origin-left" />
+                  </Link>
+                  {item.children.length > 0 && (
+                    <div className="absolute top-full left-0 pt-4 opacity-0 invisible group-hover/nav:opacity-100 group-hover/nav:visible transition-all duration-200 z-50">
+                      <div className="bg-white rounded-xl shadow-xl border border-gray-100 py-3 min-w-[200px]">
+                        {item.children.map((sub) => (
+                          <Link
+                            key={sub.label}
+                            href={sub.href}
+                            className="block px-5 py-2.5 text-sm text-gray-700 hover:bg-gsg-purple/5 hover:text-gsg-purple transition-colors font-medium"
+                          >
+                            {sub.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               ))}
             </nav>
 
@@ -238,16 +339,47 @@ export default function GSGHeader() {
                   ))}
                   <div className="my-2 border-t border-gray-100" />
                   <div className="px-6 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Categories</div>
-                  {CATEGORY_NAV.map((item) => (
-                    <Link
-                      key={item.label}
-                      href={item.href}
-                      className="px-6 py-3 text-gray-700 hover:bg-gray-50 hover:text-gsg-purple font-medium flex items-center justify-between"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      {item.label}
-                      <i className="ri-arrow-right-s-line text-gray-400" />
-                    </Link>
+                  {categories.map((cat) => (
+                    <div key={cat.label}>
+                      <div className="flex items-center">
+                        <Link
+                          href={cat.href}
+                          className="flex-1 px-6 py-3 text-gray-700 hover:bg-gray-50 hover:text-gsg-purple font-medium"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          {cat.label}
+                        </Link>
+                        {cat.children.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => toggleCategory(cat.label)}
+                            className="px-4 py-3 text-gray-400 hover:text-gsg-purple transition-colors"
+                          >
+                            <i className={`ri-arrow-${expandedCategories.has(cat.label) ? 'down' : 'right'}-s-line text-lg transition-transform`} />
+                          </button>
+                        )}
+                        {cat.children.length === 0 && (
+                          <span className="px-4 py-3">
+                            <i className="ri-arrow-right-s-line text-gray-400" />
+                          </span>
+                        )}
+                      </div>
+                      {cat.children.length > 0 && expandedCategories.has(cat.label) && (
+                        <div className="bg-gray-50 border-y border-gray-100">
+                          {cat.children.map((sub) => (
+                            <Link
+                              key={sub.label}
+                              href={sub.href}
+                              className="flex items-center gap-2 pl-10 pr-6 py-2.5 text-sm text-gray-600 hover:text-gsg-purple hover:bg-gray-100 transition-colors"
+                              onClick={() => setMobileMenuOpen(false)}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-gsg-purple/30" />
+                              {sub.label}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </nav>
               </div>
