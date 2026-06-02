@@ -149,9 +149,6 @@ export default function HomeHeroCategoryNav({ categories }: { categories: HomeCa
                 >
                   <i className={`${iconForSlug(cat.slug)} text-base text-gray-400`} />
                   <span className="flex-1 text-left leading-snug truncate">{cat.name}</span>
-                  <span className="text-[9px] font-bold uppercase tracking-wide text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded">
-                    Shopper
-                  </span>
                 </a>
               </div>
             );

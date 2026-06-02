@@ -296,26 +296,14 @@ export default function GSGHeader() {
                   {categories.map((cat) => (
                     <div key={cat.label}>
                       {cat.external ? (
-                        <>
-                          <a
-                            href={cat.href}
-                            onClick={() => setMegaMenuOpen(false)}
-                            className="flex items-center gap-2 font-bold text-gsg-black hover:text-orange-500 transition-colors mb-3 pb-3 border-b-2 border-orange-300/40"
-                          >
-                            <i className="ri-vip-crown-line text-orange-500" />
-                            <span>{cat.label}</span>
-                          </a>
-                          <p className="text-xs text-gray-500 mb-3 leading-relaxed">
-                            Sourced for you via Personal Shopper.
-                          </p>
-                          <a
-                            href={cat.href}
-                            onClick={() => setMegaMenuOpen(false)}
-                            className="inline-flex items-center gap-1 text-xs font-bold text-orange-500 hover:text-orange-600 transition-colors"
-                          >
-                            Visit Personal Shopper <i className="ri-arrow-right-up-line" />
-                          </a>
-                        </>
+                        <a
+                          href={cat.href}
+                          onClick={() => setMegaMenuOpen(false)}
+                          className="flex items-center gap-2 font-bold text-gsg-black hover:text-gsg-purple transition-colors mb-4 pb-3 border-b-2 border-gsg-purple/20"
+                        >
+                          <span>{cat.label}</span>
+                          <i className="ri-arrow-right-up-line text-xs text-gsg-purple opacity-0 group-hover:opacity-100" />
+                        </a>
                       ) : (
                         <>
                           <Link
@@ -424,19 +412,18 @@ export default function GSGHeader() {
                   {categories.map((cat) => (
                     <div key={cat.label}>
                       {cat.external ? (
-                        <a
-                          href={cat.href}
-                          className="flex items-center justify-between px-6 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-500 font-medium"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          <span className="flex items-center gap-2">
-                            <i className="ri-vip-crown-line text-orange-500" />
+                        <div className="flex items-center">
+                          <a
+                            href={cat.href}
+                            className="flex-1 px-6 py-3 text-gray-700 hover:bg-gray-50 hover:text-gsg-purple font-medium"
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
                             {cat.label}
+                          </a>
+                          <span className="px-4 py-3">
+                            <i className="ri-arrow-right-s-line text-gray-400" />
                           </span>
-                          <span className="text-[9px] font-bold uppercase tracking-wide text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded">
-                            Shopper
-                          </span>
-                        </a>
+                        </div>
                       ) : (
                       <>
                       <div className="flex items-center">
