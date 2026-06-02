@@ -39,7 +39,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   const [currentHeroImage, setCurrentHeroImage] = useState(0);
-  const HERO_IMAGES = ['/slider-1.png', '/slider-2.png', '/slider-3.png'];
+  const HERO_IMAGES = ['/hero-1.png', '/hero-2.png', '/slider-1.png', '/slider-2.png', '/slider-3.png'];
 
   useEffect(() => {
     const timer = setInterval(() => {
