@@ -10,6 +10,7 @@ import AnimatedSection, { AnimatedGrid } from '@/components/AnimatedSection';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import HomeHeroCategoryNav, { type HomeCategoryNode } from '@/components/HomeHeroCategoryNav';
 import { shopperUrl } from '@/lib/site-urls';
+import { SHOPPER_REDIRECT_CATEGORIES, shopperCategoryHref } from '@/lib/shopper-categories';
 
 const MAIN_GOODS_SLUGS = [
   'grocery', 'mobile', 'stationery', 'lighting-battery', 'food-items', 'nonfood-items',
@@ -81,7 +82,7 @@ export default function Home() {
 
   const categoryTree: HomeCategoryNode[] = useMemo(() => {
     const parents = allCategories.filter((c: any) => !c.parent_id);
-    return parents
+    const dbNodes = parents
       .map((p: any) => ({
         id: p.id,
         name: p.name,
@@ -92,6 +93,19 @@ export default function Home() {
           .map((c: any) => ({ id: c.id, name: c.name, slug: c.slug })),
       }))
       .slice(0, 12);
+
+    // Personal Shopper-only categories: hard-coded, link out to the shopper
+    // subdomain (these are intentionally not stored in the categories table).
+    const shopperNodes: HomeCategoryNode[] = SHOPPER_REDIRECT_CATEGORIES.map((c) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      image_url: null,
+      externalHref: shopperCategoryHref(),
+      children: [],
+    }));
+
+    return [...dbNodes, ...shopperNodes];
   }, [allCategories]);
 
   const featuredRailRef = useRef<HTMLDivElement>(null);

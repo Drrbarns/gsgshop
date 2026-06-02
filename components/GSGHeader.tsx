@@ -7,6 +7,7 @@ import MiniCart from './MiniCart';
 import { useCart } from '@/context/CartContext';
 import { supabase } from '@/lib/supabase';
 import { shopperUrl } from '@/lib/site-urls';
+import { SHOPPER_REDIRECT_CATEGORIES, shopperCategoryHref } from '@/lib/shopper-categories';
 
 const MAIN_NAV = [
   { label: 'Home', href: '/' },
@@ -36,7 +37,18 @@ interface CategoryItem {
   label: string;
   href: string;
   children: CategoryItem[];
+  /** When true the entry links out to the Personal Shopper subdomain. */
+  external?: boolean;
 }
+
+// Personal Shopper-only categories, hard-coded to redirect to the shopper
+// subdomain. Appended after the DB-driven goods categories.
+const SHOPPER_NAV_CATEGORIES: CategoryItem[] = SHOPPER_REDIRECT_CATEGORIES.map((c) => ({
+  label: c.name,
+  href: shopperCategoryHref(),
+  children: [],
+  external: true,
+}));
 
 export default function GSGHeader() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,7 +56,7 @@ export default function GSGHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { cartCount, isCartOpen, setIsCartOpen } = useCart();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [categories, setCategories] = useState<CategoryItem[]>(FALLBACK_CATEGORIES);
+  const [categories, setCategories] = useState<CategoryItem[]>([...FALLBACK_CATEGORIES, ...SHOPPER_NAV_CATEGORIES]);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [megaMenuOpen, setMegaMenuOpen] = useState(false);
 
@@ -97,7 +109,7 @@ export default function GSGHeader() {
         }));
 
         if (tree.length > 0) {
-          setCategories(tree);
+          setCategories([...tree, ...SHOPPER_NAV_CATEGORIES]);
         }
       } catch (err) {
         // Keep fallback categories on error
@@ -283,37 +295,62 @@ export default function GSGHeader() {
                 <div className="grid grid-cols-5 gap-8">
                   {categories.map((cat) => (
                     <div key={cat.label}>
-                      <Link
-                        href={cat.href}
-                        onClick={() => setMegaMenuOpen(false)}
-                        className="flex items-center gap-2 font-bold text-gsg-black hover:text-gsg-purple transition-colors mb-4 pb-3 border-b-2 border-gsg-purple/20"
-                      >
-                        <span>{cat.label}</span>
-                        <i className="ri-arrow-right-up-line text-xs text-gsg-purple opacity-0 group-hover:opacity-100" />
-                      </Link>
-                      {cat.children.length > 0 && (
-                        <ul className="space-y-2">
-                          {cat.children.map((sub) => (
-                            <li key={sub.label}>
-                              <Link
-                                href={sub.href}
-                                onClick={() => setMegaMenuOpen(false)}
-                                className="text-sm text-gray-600 hover:text-gsg-purple hover:pl-1 transition-all flex items-center gap-2 group/sub"
-                              >
-                                <span className="w-1 h-1 rounded-full bg-gray-300 group-hover/sub:bg-gsg-purple transition-colors" />
-                                {sub.label}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
+                      {cat.external ? (
+                        <>
+                          <a
+                            href={cat.href}
+                            onClick={() => setMegaMenuOpen(false)}
+                            className="flex items-center gap-2 font-bold text-gsg-black hover:text-orange-500 transition-colors mb-3 pb-3 border-b-2 border-orange-300/40"
+                          >
+                            <i className="ri-vip-crown-line text-orange-500" />
+                            <span>{cat.label}</span>
+                          </a>
+                          <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+                            Sourced for you via Personal Shopper.
+                          </p>
+                          <a
+                            href={cat.href}
+                            onClick={() => setMegaMenuOpen(false)}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-orange-500 hover:text-orange-600 transition-colors"
+                          >
+                            Visit Personal Shopper <i className="ri-arrow-right-up-line" />
+                          </a>
+                        </>
+                      ) : (
+                        <>
+                          <Link
+                            href={cat.href}
+                            onClick={() => setMegaMenuOpen(false)}
+                            className="flex items-center gap-2 font-bold text-gsg-black hover:text-gsg-purple transition-colors mb-4 pb-3 border-b-2 border-gsg-purple/20"
+                          >
+                            <span>{cat.label}</span>
+                            <i className="ri-arrow-right-up-line text-xs text-gsg-purple opacity-0 group-hover:opacity-100" />
+                          </Link>
+                          {cat.children.length > 0 && (
+                            <ul className="space-y-2">
+                              {cat.children.map((sub) => (
+                                <li key={sub.label}>
+                                  <Link
+                                    href={sub.href}
+                                    onClick={() => setMegaMenuOpen(false)}
+                                    className="text-sm text-gray-600 hover:text-gsg-purple hover:pl-1 transition-all flex items-center gap-2 group/sub"
+                                  >
+                                    <span className="w-1 h-1 rounded-full bg-gray-300 group-hover/sub:bg-gsg-purple transition-colors" />
+                                    {sub.label}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                          <Link
+                            href={cat.href}
+                            onClick={() => setMegaMenuOpen(false)}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-gsg-purple hover:text-gsg-purple-dark mt-4 transition-colors"
+                          >
+                            View All <i className="ri-arrow-right-line" />
+                          </Link>
+                        </>
                       )}
-                      <Link
-                        href={cat.href}
-                        onClick={() => setMegaMenuOpen(false)}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-gsg-purple hover:text-gsg-purple-dark mt-4 transition-colors"
-                      >
-                        View All <i className="ri-arrow-right-line" />
-                      </Link>
                     </div>
                   ))}
                 </div>
@@ -386,6 +423,22 @@ export default function GSGHeader() {
                   <div className="px-6 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Categories</div>
                   {categories.map((cat) => (
                     <div key={cat.label}>
+                      {cat.external ? (
+                        <a
+                          href={cat.href}
+                          className="flex items-center justify-between px-6 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-500 font-medium"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <span className="flex items-center gap-2">
+                            <i className="ri-vip-crown-line text-orange-500" />
+                            {cat.label}
+                          </span>
+                          <span className="text-[9px] font-bold uppercase tracking-wide text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded">
+                            Shopper
+                          </span>
+                        </a>
+                      ) : (
+                      <>
                       <div className="flex items-center">
                         <Link
                           href={cat.href}
@@ -423,6 +476,8 @@ export default function GSGHeader() {
                             </Link>
                           ))}
                         </div>
+                      )}
+                      </>
                       )}
                     </div>
                   ))}

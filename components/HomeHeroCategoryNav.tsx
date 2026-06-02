@@ -8,6 +8,11 @@ export type HomeCategoryNode = {
   name: string;
   slug: string;
   image_url?: string | null;
+  /**
+   * When set, this entry links to an external URL (e.g. the Personal Shopper
+   * subdomain) instead of `/shop?category=`. Such entries have no flyout.
+   */
+  externalHref?: string | null;
   children: { id: string; name: string; slug: string }[];
 };
 
@@ -133,6 +138,25 @@ export default function HomeHeroCategoryNav({ categories }: { categories: HomeCa
         {categories.map((cat) => {
           const isActive = activeId === cat.id;
           const hasChildren = cat.children.length > 0;
+
+          // Personal Shopper categories link out to the shopper subdomain.
+          if (cat.externalHref) {
+            return (
+              <div key={cat.id} className="relative" onMouseEnter={clearTimer}>
+                <a
+                  href={cat.externalHref}
+                  className="flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors border-l-3 border-l-transparent"
+                >
+                  <i className={`${iconForSlug(cat.slug)} text-base text-gray-400`} />
+                  <span className="flex-1 text-left leading-snug truncate">{cat.name}</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wide text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded">
+                    Shopper
+                  </span>
+                </a>
+              </div>
+            );
+          }
+
           return (
             <div
               key={cat.id}
