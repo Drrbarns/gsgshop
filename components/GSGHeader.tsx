@@ -19,17 +19,17 @@ const MAIN_NAV = [
 
 const FALLBACK_CATEGORIES = [
   { label: 'Convenience Goods & More', href: '/shop', children: [] },
-  { label: 'Food Items', href: '/shop?category=food-items', children: [] },
-  { label: 'Nonfood Items', href: '/shop?category=nonfood', children: [] },
-  { label: 'Personal Care', href: '/shop?category=personal-household-care', children: [] },
-  { label: 'Occasions', href: '/shop?category=occasions-holidays', children: [] },
+  { label: 'Groceries & Pantry', href: '/shop?category=grocery', children: [] },
+  { label: 'Household Essentials', href: '/shop?category=household-essentials', children: [] },
+  { label: 'Personal Care', href: '/shop?category=personal-care', children: [] },
+  { label: 'Stationery & Office', href: '/shop?category=stationery', children: [] },
   { label: 'Gift Cards', href: '/gift-card', children: [] },
 ];
 
 const FEATURED_NAV_ITEMS = [
-  { label: 'Food Essentials', href: '/shop?category=food-essentials' },
-  { label: 'Non-food Essentials', href: '/shop?category=non-food-essentials' },
-  { label: 'Jeanswear', href: '/shop?category=jeanswear' },
+  { label: 'Groceries', href: '/shop?category=grocery' },
+  { label: 'Household Essentials', href: '/shop?category=household-essentials' },
+  { label: 'Stationery & Office', href: '/shop?category=stationery' },
   { label: 'Free Delivery', href: '/shipping#free-delivery' },
 ];
 

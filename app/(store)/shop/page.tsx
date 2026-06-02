@@ -17,6 +17,7 @@ function ShopContent() {
   // State
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([{ id: 'all', name: 'All Products', count: 0 }]);
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [totalProducts, setTotalProducts] = useState(0);
 
@@ -53,6 +54,8 @@ function ShopContent() {
         }
       } catch (err) {
         console.error('Error fetching categories:', err);
+      } finally {
+        setCategoriesLoaded(true);
       }
     }
     fetchCategories();
@@ -60,6 +63,11 @@ function ShopContent() {
 
   // Fetch Products
   useEffect(() => {
+    // When a specific category is selected, wait until the category tree has
+    // loaded so we can resolve its full set of descendant categories. Fetching
+    // early would either miss the filter or cache an incorrect result.
+    if (selectedCategory !== 'all' && !categoriesLoaded) return;
+
     async function fetchProducts() {
       setLoading(true);
       try {
@@ -86,19 +94,29 @@ function ShopContent() {
               query = query.ilike('name', `%${search}%`);
             }
 
-            // Category Filter with Subcategories
+            // Category Filter: include the selected category AND every
+            // descendant (sub-categories at any depth), since products are
+            // assigned to the deepest leaf categories.
             if (selectedCategory !== 'all') {
               const categoryObj = categories.find(c => c.slug === selectedCategory);
 
               if (categoryObj) {
-                const targetSlugs = [selectedCategory];
-                const childSlugs = categories
-                  .filter(c => c.parent_id === categoryObj.id)
-                  .map(c => c.slug);
-                targetSlugs.push(...childSlugs);
-                query = query.in('categories.slug', targetSlugs);
+                const ids = [categoryObj.id];
+                let frontier = [categoryObj.id];
+                while (frontier.length) {
+                  const childIds = categories
+                    .filter(c => c.parent_id && frontier.includes(c.parent_id))
+                    .map(c => c.id)
+                    .filter(id => !ids.includes(id));
+                  if (childIds.length === 0) break;
+                  ids.push(...childIds);
+                  frontier = childIds;
+                }
+                query = query.in('category_id', ids);
               } else {
-                query = query.eq('categories.slug', selectedCategory);
+                // Unknown / inactive category slug — return no products rather
+                // than silently showing the entire catalogue.
+                query = query.eq('category_id', '00000000-0000-0000-0000-000000000000');
               }
             }
 
@@ -195,7 +213,7 @@ function ShopContent() {
     }
 
     fetchProducts();
-  }, [selectedCategory, priceRange, selectedRating, sortBy, page, searchParams]);
+  }, [selectedCategory, priceRange, selectedRating, sortBy, page, searchParams, categoriesLoaded, categories]);
 
   const totalPages = Math.ceil(totalProducts / productsPerPage);
 
