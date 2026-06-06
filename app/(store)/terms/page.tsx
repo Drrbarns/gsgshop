@@ -1,11 +1,13 @@
 import LegalDoc from '@/components/legal/LegalDoc';
 import { TERMS_INTRO, TERMS_SECTIONS } from '@/components/legal/terms-sections';
+import { createPageMetadata } from '@/lib/seo';
 
-export const metadata = {
-  title: 'General Terms & Conditions | GSG Brands',
+export const metadata = createPageMetadata({
+  title: 'Terms & Conditions',
   description:
-    'The contract that governs how you use every GSG Brands service — Convenience Goods & More, Personal Shopper, Sell-Safe Buy-Safe, StreetCuisine, Courier, GSG-AID, and Affiliates.',
-};
+    'Terms and conditions for using GSG Convenience Goods & More — orders, delivery, payments, returns and your rights as a customer in Ghana.',
+  path: '/terms',
+});
 
 export default function TermsPage() {
   return (

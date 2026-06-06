@@ -1,4 +1,15 @@
 import { Metadata } from 'next';
+import {
+  absoluteUrl,
+  createPageMetadata,
+  DEFAULT_DESCRIPTION,
+  generateBreadcrumbSchema,
+  generateOrganizationSchema,
+  generateProductSchema,
+  generateWebSiteSchema,
+  getSiteUrl,
+  SITE_NAME,
+} from '@/lib/seo';
 
 interface SEOProps {
   title?: string;
@@ -13,191 +24,55 @@ interface SEOProps {
   publishedTime?: string;
   author?: string;
   noindex?: boolean;
+  path?: string;
 }
 
 export function generateMetadata({
   title = 'Premium Online Shopping in Ghana',
-  description = 'Shop premium convenience goods at GSG Convenience Goods & More. Locally sourced and imported quality products delivered across Ghana.',
+  description = DEFAULT_DESCRIPTION,
   keywords = [],
-  ogImage = 'https://readdy.ai/api/search-image?query=modern%20premium%20ecommerce%20online%20shopping%20platform%20elegant%20design&width=1200&height=630&seq=ogimage&orientation=landscape',
+  ogImage = '/og-image.png',
   ogType = 'website',
-  price,
-  currency = 'GHS',
-  availability,
-  category,
   publishedTime,
   author,
-  noindex = false
+  noindex = false,
+  path = '/',
 }: SEOProps): Metadata {
-  const siteName = 'GSG Convenience Goods & More';
-  const siteUrl = 'https://www.gsgbrands.com.gh';
-  const fullTitle = title.includes(siteName) ? title : `${title} | ${siteName}`;
-
-  const defaultKeywords = [
-    'online shopping ghana',
-    'premium products ghana',
-    'buy online ghana',
-    'ecommerce ghana',
-    'fast delivery ghana',
-    'secure shopping'
-  ];
-
-  const allKeywords = [...new Set([...keywords, ...defaultKeywords])];
-
-  const metadata: Metadata = {
-    title: fullTitle,
+  const metadata = createPageMetadata({
+    title,
     description,
-    keywords: allKeywords.join(', '),
-    authors: author ? [{ name: author }] : undefined,
-    openGraph: {
-      title: fullTitle,
-      description,
-      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
-      type: ogType as any,
-      siteName,
-      locale: 'en_GH'
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: fullTitle,
-      description,
-      images: [ogImage]
-    },
-    robots: noindex ? {
-      index: false,
-      follow: false
-    } : {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        'max-image-preview': 'large',
-        'max-snippet': -1
-      }
-    },
-    alternates: {
-      canonical: siteUrl
-    }
-  };
+    path,
+    keywords,
+    noindex,
+    ogImage,
+  });
 
   if (ogType === 'article' && publishedTime) {
     metadata.openGraph = {
       ...metadata.openGraph,
       type: 'article',
-      publishedTime
+      publishedTime,
     };
+  }
+
+  if (author) {
+    metadata.authors = [{ name: author }];
   }
 
   return metadata;
 }
 
-export function generateProductSchema(product: {
-  name: string;
-  description: string;
-  image: string;
-  price: number;
-  currency?: string;
-  sku: string;
-  rating?: number;
-  reviewCount?: number;
-  availability?: string;
-  brand?: string;
-  category?: string;
-}) {
-  const schema = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: product.name,
-    description: product.description,
-    image: product.image,
-    sku: product.sku,
-    brand: {
-      '@type': 'Brand',
-      name: product.brand || 'GSG Convenience Goods & More'
-    },
-    offers: {
-      '@type': 'Offer',
-      price: product.price,
-      priceCurrency: product.currency || 'GHS',
-      availability: product.availability === 'in_stock'
-        ? 'https://schema.org/InStock'
-        : 'https://schema.org/OutOfStock',
-      url: typeof window !== 'undefined' ? window.location.href : '',
-      priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    }
-  };
+export {
+  generateProductSchema,
+  generateBreadcrumbSchema,
+  generateOrganizationSchema,
+  generateWebSiteSchema,
+  getSiteUrl,
+  absoluteUrl,
+  SITE_NAME,
+};
 
-  if (product.rating && product.reviewCount) {
-    (schema as any).aggregateRating = {
-      '@type': 'AggregateRating',
-      ratingValue: product.rating,
-      reviewCount: product.reviewCount,
-      bestRating: 5,
-      worstRating: 1
-    };
-  }
-
-  if (product.category) {
-    (schema as any).category = product.category;
-  }
-
-  return schema;
-}
-
-export function generateBreadcrumbSchema(items: { name: string; url: string }[]) {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: items.map((item, index) => ({
-      '@type': 'ListItem',
-      position: index + 1,
-      name: item.name,
-      item: item.url
-    }))
-  };
-}
-
-export function generateOrganizationSchema() {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    name: 'GSG Convenience Goods & More',
-    url: 'https://www.gsgbrands.com.gh',
-    logo: 'https://readdy.ai/api/search-image?query=premium%20shop%20logo%20elegant%20modern&width=200&height=200&seq=logo&orientation=squarish',
-    contactPoint: {
-      '@type': 'ContactPoint',
-      telephone: '+233 (0) 246 033 792',
-      contactType: 'Customer Service',
-      areaServed: 'GH',
-      availableLanguage: ['English']
-    },
-    sameAs: [
-      'https://facebook.com/gsgbrandsgh',
-      'https://instagram.com/gsgbrandsgh',
-      'https://twitter.com/gsgbrandsgh'
-    ]
-  };
-}
-
-export function generateWebsiteSchema() {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    name: 'GSG Convenience Goods & More',
-    url: 'https://www.gsgbrands.com.gh',
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: {
-        '@type': 'EntryPoint',
-        urlTemplate: 'https://www.gsgbrands.com.gh/shop?search={search_term_string}'
-      },
-      'query-input': 'required name=search_term_string'
-    }
-  };
-}
-
-export function StructuredData({ data }: { data: any }) {
+export function StructuredData({ data }: { data: unknown }) {
   return (
     <script
       type="application/ld+json"

@@ -2,6 +2,15 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import PageHero from '@/components/PageHero';
+import { createPageMetadata } from '@/lib/seo';
+
+export const metadata = createPageMetadata({
+  title: 'Shop by Category',
+  description:
+    'Explore GSG categories: groceries, household essentials, personal care, stationery, phones, electronics and fashion. Find the right products fast.',
+  path: '/categories',
+  keywords: ['product categories Ghana', 'grocery categories', 'shop by category Accra'],
+});
 
 export const revalidate = 0; // Ensure fresh data on every visit
 

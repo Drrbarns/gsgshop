@@ -1,8 +1,7 @@
 import { MetadataRoute } from 'next';
+import { absoluteUrl } from '@/lib/seo';
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.gsgbrands.com.gh';
-
   return {
     rules: [
       {
@@ -11,12 +10,24 @@ export default function robots(): MetadataRoute.Robots {
         disallow: [
           '/admin/',
           '/api/',
+          '/auth/',
+          '/account/',
           '/checkout',
           '/cart',
-          '/account/',
+          '/basket',
+          '/wishlist',
+          '/pay/',
+          '/order-success',
+          '/order-tracking',
+          '/returns/confirmation',
+          '/support/',
+          '/maintenance',
+          '/offline',
+          '/pwa-settings',
         ],
       },
     ],
-    sitemap: `${baseUrl}/sitemap.xml`,
+    sitemap: absoluteUrl('/sitemap.xml'),
+    host: absoluteUrl('/'),
   };
 }

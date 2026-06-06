@@ -7,7 +7,6 @@ import { supabase } from '@/lib/supabase';
 import { cachedQuery } from '@/lib/query-cache';
 import ProductCard from '@/components/ProductCard';
 import ProductReviews from '@/components/ProductReviews';
-import { StructuredData, generateProductSchema, generateBreadcrumbSchema } from '@/components/SEOHead';
 import { notFound } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -250,31 +249,8 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
   const discount = product.compare_at_price ? Math.round((1 - activePrice / product.compare_at_price) * 100) : 0;
   const minVariantPrice = hasVariants ? Math.min(...product.variants.map((v: any) => v.price || product.price)) : product.price;
 
-  const productSchema = generateProductSchema({
-    name: product.name,
-    description: product.description,
-    image: product.images[0],
-    price: hasVariants ? minVariantPrice : product.price,
-    currency: 'GHS',
-    sku: product.sku,
-    rating: product.rating,
-    reviewCount: product.reviewCount,
-    availability: product.quantity > 0 ? 'in_stock' : 'out_of_stock',
-    category: product.category
-  });
-
-  const breadcrumbSchema = generateBreadcrumbSchema([
-    { name: 'Home', url: 'https://www.gsgbrands.com.gh' },
-    { name: 'Shop', url: 'https://www.gsgbrands.com.gh/shop' },
-    { name: product.category, url: `https://www.gsgbrands.com.gh/shop?category=${product.category.toLowerCase().replace(/\s+/g, '-')}` },
-    { name: product.name, url: `https://www.gsgbrands.com.gh/product/${slug}` }
-  ]);
-
   return (
     <>
-      <StructuredData data={productSchema} />
-      <StructuredData data={breadcrumbSchema} />
-
       <main className="min-h-screen bg-white">
         <section className="py-8 bg-gray-50 border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">

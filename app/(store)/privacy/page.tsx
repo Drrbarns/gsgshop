@@ -3,12 +3,14 @@ import {
   PRIVACY_INTRO,
   PRIVACY_SECTIONS,
 } from '@/components/legal/privacy-sections';
+import { createPageMetadata } from '@/lib/seo';
 
-export const metadata = {
-  title: 'Privacy Policy | GSG Brands',
+export const metadata = createPageMetadata({
+  title: 'Privacy Policy',
   description:
-    'How GSG Brands collects, uses, shares, and protects your personal information — in compliance with the Data Protection Act, 2012 (Act 843) of Ghana.',
-};
+    'How GSG Convenience Goods & More collects, uses, shares, and protects your personal information — in compliance with the Data Protection Act, 2012 (Act 843) of Ghana.',
+  path: '/privacy',
+});
 
 export default function PrivacyPage() {
   return (

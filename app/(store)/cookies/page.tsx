@@ -3,12 +3,14 @@ import {
   COOKIES_INTRO,
   COOKIES_SECTIONS,
 } from '@/components/legal/cookies-sections';
+import { createPageMetadata } from '@/lib/seo';
 
-export const metadata = {
-  title: 'Cookie Policy | GSG Brands',
+export const metadata = createPageMetadata({
+  title: 'Cookie Policy',
   description:
-    'How GSG Brands uses cookies and similar technologies on our service domains, and how you can manage them.',
-};
+    'How GSG Convenience Goods & More uses cookies and similar technologies, and how you can manage your preferences.',
+  path: '/cookies',
+});
 
 export default function CookiesPage() {
   return (
