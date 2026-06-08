@@ -44,16 +44,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const { data: products } = await supabase
       .from('products')
-      .select('slug, updated_at')
+      .select('slug, updated_at, product_images(url, position)')
       .eq('status', 'active');
 
     if (products) {
-      productPages = products.map((product) => ({
-        url: absoluteUrl(`/product/${product.slug}`),
-        lastModified: product.updated_at ? new Date(product.updated_at) : now,
-        changeFrequency: 'weekly' as const,
-        priority: 0.8,
-      }));
+      productPages = products.map((product) => {
+        const images = (product.product_images || [])
+          .sort((a: { position: number }, b: { position: number }) => a.position - b.position)
+          .map((img: { url: string }) => img.url)
+          .filter(Boolean);
+
+        return {
+          url: absoluteUrl(`/product/${product.slug}`),
+          lastModified: product.updated_at ? new Date(product.updated_at) : now,
+          changeFrequency: 'weekly' as const,
+          priority: 0.8,
+          ...(images.length ? { images } : {}),
+        };
+      });
     }
 
     const { data: categories } = await supabase

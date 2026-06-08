@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import PageHero from '@/components/PageHero';
-import { createPageMetadata } from '@/lib/seo';
+import { absoluteUrl, createPageMetadata, SITE_NAME } from '@/lib/seo';
 
 export const metadata = createPageMetadata({
   title: 'Shop by Category',
@@ -50,8 +50,31 @@ export default async function CategoriesPage() {
     };
   }) || [];
 
+  const collectionSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Shop by Category',
+    description: 'Browse all product categories at GSG Convenience Goods & More.',
+    url: absoluteUrl('/categories'),
+    isPartOf: { '@type': 'WebSite', name: SITE_NAME, url: absoluteUrl('/') },
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: categories.length,
+      itemListElement: categories.map((c, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: c.name,
+        url: absoluteUrl(`/shop?category=${c.slug}`),
+      })),
+    },
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }}
+      />
       <PageHero
         title="Shop by Category"
         subtitle="Explore our wide range of premium products"
