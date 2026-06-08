@@ -1,9 +1,10 @@
 import ShopperHeader from '@/components/ShopperHeader';
 import GSGFooter from '@/components/GSGFooter';
 import { Metadata, Viewport } from 'next';
-import { getShopperBaseUrl } from '@/lib/site-urls';
+import { getShopperBaseUrl, getGoodsBaseUrl } from '@/lib/site-urls';
 
 const shopperUrl = getShopperBaseUrl();
+const goodsUrl = getGoodsBaseUrl();
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -102,8 +103,8 @@ const SHOPPER_JSON_LD = {
     '@type': 'Organization',
     '@id': `${shopperUrl}/#organization`,
     name: 'GSG Convenience Goods & More',
-    url: 'https://www.gsgbrands.com.gh',
-    logo: 'https://www.gsgbrands.com.gh/fgfg.png',
+    url: goodsUrl,
+    logo: `${goodsUrl}/fgfg.png`,
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer service',

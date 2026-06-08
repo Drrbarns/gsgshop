@@ -1,3 +1,13 @@
+import { createShopperPageMetadata, generateFaqSchema } from '@/lib/seo';
+
+export const metadata = createShopperPageMetadata({
+  title: 'FAQ',
+  description:
+    'Answers about My Personal Shopper by GSG — how the service works, the 5% markup, delivery fees, payments, produce sourcing and tracking your request in Ghana.',
+  path: '/faqs',
+  keywords: ['personal shopper FAQ Ghana', 'markup fee', 'delivery fee Accra'],
+});
+
 export default function ShopperFAQs() {
   const faqs = [
     {
@@ -50,8 +60,16 @@ export default function ShopperFAQs() {
     }
   ];
 
+  const faqSchema = generateFaqSchema(
+    faqs.map((faq) => ({ question: faq.q, answer: faq.a })),
+  );
+
   return (
     <div className="bg-gray-50 min-h-screen py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-5xl font-bold text-gsg-black mb-4">Frequently Asked Questions</h1>

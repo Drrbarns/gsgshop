@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
-import { getGoodsBaseUrl } from '@/lib/site-urls';
+import { getGoodsBaseUrl, getShopperBaseUrl } from '@/lib/site-urls';
 
 export const SITE_NAME = 'GSG Convenience Goods & More';
 export const SITE_TAGLINE = 'Premium Convenience Shopping in Ghana';
+
+export const SHOPPER_SITE_NAME = 'My Personal Shopper by GSG';
 
 export const DEFAULT_DESCRIPTION =
   'Shop groceries, household essentials, personal care, stationery, electronics and more online in Ghana. Fast delivery across Accra and nationwide from GSG Convenience Goods & More.';
@@ -260,6 +262,75 @@ export function generateBreadcrumbSchema(items: { name: string; url: string }[])
       name: item.name,
       item: item.url,
     })),
+  };
+}
+
+/** Canonical public origin for the personal-shopper subdomain. */
+export function getShopperSiteUrl(): string {
+  return getShopperBaseUrl();
+}
+
+export function shopperAbsoluteUrl(path: string = '/'): string {
+  const base = getShopperSiteUrl();
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${normalized === '/' ? '' : normalized}`;
+}
+
+/** Build consistent metadata with canonical URLs for shopper subdomain pages. */
+export function createShopperPageMetadata({
+  title,
+  description,
+  path = '/',
+  keywords = [],
+  noindex = false,
+  ogImage,
+}: {
+  title: string;
+  description: string;
+  path?: string;
+  keywords?: string[];
+  noindex?: boolean;
+  ogImage?: string;
+}): Metadata {
+  const url = shopperAbsoluteUrl(path);
+  const fullTitle = title.includes(SHOPPER_SITE_NAME)
+    ? title
+    : `${title} | ${SHOPPER_SITE_NAME}`;
+  const image = ogImage || shopperAbsoluteUrl('/opengraph-image');
+
+  return {
+    title,
+    description,
+    keywords: keywords.length ? keywords : undefined,
+    alternates: { canonical: url },
+    openGraph: {
+      type: 'website',
+      locale: 'en_GH',
+      url,
+      title: fullTitle,
+      description,
+      siteName: SHOPPER_SITE_NAME,
+      images: [{ url: image, width: 1200, height: 630, alt: SHOPPER_SITE_NAME }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: fullTitle,
+      description,
+      images: [image],
+      creator: '@gsgbrandsgh',
+    },
+    robots: noindex
+      ? { index: false, follow: false }
+      : {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            'max-image-preview': 'large',
+            'max-snippet': -1,
+          },
+        },
   };
 }
 

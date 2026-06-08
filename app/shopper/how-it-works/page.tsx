@@ -1,5 +1,18 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { createShopperPageMetadata } from '@/lib/seo';
+
+export const metadata = createShopperPageMetadata({
+  title: 'How It Works',
+  description:
+    'See how My Personal Shopper by GSG works — create your list, we source at market price with 5% markup or less, then deliver to your door in Ghana.',
+  path: '/how-it-works',
+  keywords: [
+    'how personal shopper works Ghana',
+    'shopping service steps',
+    'source price shopping Accra',
+  ],
+});
 
 const STEPS = [
   {

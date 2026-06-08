@@ -1,11 +1,13 @@
 import LegalDoc from '@/components/legal/LegalDoc';
 import { TERMS_INTRO, TERMS_SECTIONS } from '@/components/legal/terms-sections';
+import { createShopperPageMetadata } from '@/lib/seo';
 
-export const metadata = {
-  title: 'General Terms & Conditions | GSG Personal Shopper',
+export const metadata = createShopperPageMetadata({
+  title: 'Terms & Conditions',
   description:
-    'The contract that governs how you use every GSG Brands service — including Personal Shopper. Plain Ghanaian English, but legally binding.',
-};
+    'The contract that governs how you use the GSG Personal Shopper service — sourcing, payments, delivery and your rights as a customer in Ghana.',
+  path: '/terms',
+});
 
 export default function ShopperTerms() {
   return (

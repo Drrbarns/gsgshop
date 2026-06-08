@@ -3,12 +3,14 @@ import {
   PRIVACY_INTRO,
   PRIVACY_SECTIONS,
 } from '@/components/legal/privacy-sections';
+import { createShopperPageMetadata } from '@/lib/seo';
 
-export const metadata = {
-  title: 'Privacy Policy | GSG Personal Shopper',
+export const metadata = createShopperPageMetadata({
+  title: 'Privacy Policy',
   description:
-    'How GSG Brands collects, uses, shares, and protects your personal information — in compliance with the Data Protection Act, 2012 (Act 843) of Ghana.',
-};
+    'How GSG Personal Shopper collects, uses, shares, and protects your personal information — in compliance with the Data Protection Act, 2012 (Act 843) of Ghana.',
+  path: '/privacy-policy',
+});
 
 export default function ShopperPrivacyPolicy() {
   return (

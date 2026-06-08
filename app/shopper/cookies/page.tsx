@@ -3,12 +3,14 @@ import {
   COOKIES_INTRO,
   COOKIES_SECTIONS,
 } from '@/components/legal/cookies-sections';
+import { createShopperPageMetadata } from '@/lib/seo';
 
-export const metadata = {
-  title: 'Cookie Policy | GSG Personal Shopper',
+export const metadata = createShopperPageMetadata({
+  title: 'Cookie Policy',
   description:
-    'How GSG Brands uses cookies and similar technologies on our service domains, and how you can manage them.',
-};
+    'How GSG Personal Shopper uses cookies and similar technologies, and how you can manage your preferences.',
+  path: '/cookies',
+});
 
 export default function ShopperCookies() {
   return (
