@@ -56,6 +56,7 @@ export default function ShopperPayPage({ params }: { params: Promise<{ id: strin
   const [error, setError] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('moolre');
   const [submitting, setSubmitting] = useState(false);
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -68,6 +69,7 @@ export default function ShopperPayPage({ params }: { params: Promise<{ id: strin
           setError(data.error || 'Could not load request');
         } else {
           setInfo(data);
+          setEmail(data.contact_email || '');
         }
       } catch (e: any) {
         if (active) setError(e.message);
@@ -91,6 +93,15 @@ export default function ShopperPayPage({ params }: { params: Promise<{ id: strin
       return;
     }
 
+    const trimmedEmail = email.trim();
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail);
+
+    // Card payments (Paystack) require a valid email address.
+    if (paymentMethod === 'paystack' && !emailValid) {
+      setError('Please enter a valid email address to pay by card.');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
@@ -103,7 +114,7 @@ export default function ShopperPayPage({ params }: { params: Promise<{ id: strin
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId: info.request_number,
-          customerEmail: info.contact_email || undefined,
+          customerEmail: emailValid ? trimmedEmail : undefined,
         }),
       });
       const data = await res.json();
@@ -229,6 +240,29 @@ export default function ShopperPayPage({ params }: { params: Promise<{ id: strin
             <p className="text-sm text-gray-500 mb-6">
               Choose how you'd like to pay. You'll be redirected to a secure page to complete payment.
             </p>
+
+            <div className="mb-6">
+              <label htmlFor="pay-email" className="block text-sm font-medium text-gsg-black mb-1.5">
+                Email address
+                {paymentMethod === 'paystack' && <span className="text-red-500"> *</span>}
+              </label>
+              <input
+                id="pay-email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-gsg-purple focus:outline-none transition-colors"
+              />
+              <p className="text-xs text-gray-500 mt-1.5">
+                {paymentMethod === 'paystack'
+                  ? 'Required for card payments — your receipt is sent here.'
+                  : "We'll send your payment receipt here."}
+              </p>
+            </div>
+
             <div className="space-y-3">
               {paymentOptions.map((opt) => {
                 const selected = paymentMethod === opt.value;
