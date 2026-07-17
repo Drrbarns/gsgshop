@@ -11,7 +11,7 @@ const STEPS = [
   {
     step: '02',
     title: 'We source for you',
-    text: 'We buy at the exact source price with a transparent 5% markup or less — no hidden fees on top. Our professional shoppers confirm the quality and totals before purchasing.',
+    text: 'We buy at the exact source price with a transparent 10% service markup — no hidden fees on top. Our professional shoppers confirm the quality and totals before purchasing.',
     image: '/shopper/shopper_image_9.webp',
   },
   {
@@ -73,7 +73,7 @@ const REVIEWS = [
     avatar: '/shopper/shopper_image_3.webp',
     rating: 5,
     quote:
-      'My personal shopper does my produce run twice a week. The 5% fee saves me a whole afternoon.',
+      'My personal shopper does my produce run twice a week. The 10% fee saves me a whole afternoon.',
   },
   {
     name: 'Kwame S.',
@@ -96,7 +96,7 @@ const REVIEWS = [
 const FAQS = [
   {
     q: 'How is the price calculated?',
-    a: 'You pay the market source price for each item, plus a 5% markup or less on the subtotal, plus a delivery fee based on distance. We confirm totals before you pay.',
+    a: 'You pay the market source price for each item, plus a 10% service markup on the subtotal, plus a delivery fee based on distance. We confirm totals before you pay.',
   },
   {
     q: 'What if an item is unavailable?',
@@ -168,7 +168,7 @@ export default function ShopperHome() {
               </div>
               <div className="flex items-center gap-2">
                 <i className="ri-percent-fill text-xl text-green-400" />
-                <span>5% markup or less</span>
+                <span>10% service markup</span>
               </div>
             </div>
           </div>
