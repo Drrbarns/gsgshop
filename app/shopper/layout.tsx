@@ -1,5 +1,6 @@
 import ShopperHeader from '@/components/ShopperHeader';
 import GSGFooter from '@/components/GSGFooter';
+import WhatsAppWidget from '@/components/WhatsAppWidget';
 import { Metadata, Viewport } from 'next';
 import { getShopperBaseUrl, getGoodsBaseUrl } from '@/lib/site-urls';
 
@@ -200,6 +201,11 @@ export default function ShopperLayout({
       <ShopperHeader />
       <main className="flex-grow">{children}</main>
       <GSGFooter />
+      <WhatsAppWidget
+        agentName="GSG Personal Shopper"
+        greeting={"Hi there! 👋\n\nWelcome to My Personal Shopper by GSG. Send us your list and we'll shop for you — how can we help?"}
+        prefilledMessage={"Hi GSG Personal Shopper! I'd like some help with my shopping list."}
+      />
     </div>
   );
 }
