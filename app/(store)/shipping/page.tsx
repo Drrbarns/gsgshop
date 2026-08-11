@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import PageHero from '@/components/PageHero';
+import DeliveryFeeCalculator from '@/components/DeliveryFeeCalculator';
+import { DELIVERY_FORMULA_COPY } from '@/lib/delivery-pricing';
 
 export default function ShippingPage() {
   const [selectedZone, setSelectedZone] = useState('');
@@ -12,7 +14,8 @@ export default function ShippingPage() {
       id: 'pickup',
       type: 'Pickup',
       time: 'Within 72hrs (excl. Sunday)',
-      cost: 'As quoted',
+      cost: 'GH₵0',
+      formula: 'No delivery fee',
       description: 'Available after order confirmation. Pickup location will be displayed at the confirmation stage. Collect your items at your convenience within the pickup window.',
       icon: 'ri-store-2-line',
       highlight: false,
@@ -21,8 +24,9 @@ export default function ShippingPage() {
       id: 'free-delivery',
       type: 'Free Delivery',
       time: 'Tuesday & Friday only',
-      cost: 'FREE',
-      description: 'Minimum 5% discount on total applied as Free Delivery Discount. Orders confirmed before noon of the preceding delivery day ship next available day; orders confirmed after noon ship the following delivery day.',
+      cost: 'See formula',
+      formula: 'GH₵0.50 × km × 3 − 1% of purchase',
+      description: 'Distance fee is offset by 1% of your purchase — larger carts can bring delivery down to GH₵0. Confirm before noon of the preceding delivery day.',
       icon: 'ri-truck-line',
       highlight: true,
     },
@@ -30,7 +34,8 @@ export default function ShippingPage() {
       id: 'sole-express',
       type: 'Sole Express',
       time: 'Daily',
-      cost: 'As quoted',
+      cost: 'See formula',
+      formula: 'GH₵0.50 × km × 5 + 1.5% of purchase',
       description: 'Fresh produce, bakery, meat, frozen food, seafood, fish, and poultry MUST use Sole Express or Joint Express. Delivery within 2hr, 6hr, 12hr, 24hr, or 48hr after confirmation.',
       icon: 'ri-flashlight-line',
       highlight: false,
@@ -39,7 +44,8 @@ export default function ShippingPage() {
       id: 'joint-express',
       type: 'Joint Express',
       time: 'Daily',
-      cost: 'Shared fee',
+      cost: 'Shared (÷2)',
+      formula: '(GH₵0.50 × km × 7 + 1.5% of purchase) ÷ 2',
       description: 'Share the delivery fee with a neighbor or colleague — items remain completely private. Same perishable product rule applies. Available in 2hr, 6hr, 12hr, 24hr, or 48hr windows after confirmation.',
       icon: 'ri-group-line',
       highlight: false,
@@ -112,7 +118,8 @@ export default function ShippingPage() {
                   <i className={`${option.icon} text-2xl`}></i>
                 </div>
                 <h3 className="text-xl font-bold text-gsg-black mb-2">{option.type}</h3>
-                <div className="text-gsg-purple font-bold mb-2">{option.cost}</div>
+                <div className="text-gsg-purple font-bold mb-1">{option.cost}</div>
+                <p className="text-xs font-mono text-gray-500 mb-3 leading-snug">{option.formula}</p>
                 <div className="text-gray-500 font-medium mb-4 text-sm bg-gray-50 inline-block px-3 py-1 rounded-full">{option.time}</div>
                 <p className="text-gray-600 leading-relaxed text-sm">{option.description}</p>
               </div>
@@ -120,21 +127,37 @@ export default function ShippingPage() {
           </div>
         </div>
 
-        {/* Free Standard Shipping - Coming Soon */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-10 mb-20 text-center shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-purple-50 rounded-full -mr-32 -mt-32 opacity-50"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-50 rounded-full -ml-24 -mb-24 opacity-50"></div>
-          <div className="relative z-10">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold mb-4">
-              <i className="ri-time-line"></i> Coming Soon
-            </span>
-            <div className="w-20 h-20 bg-gsg-purple rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-200">
-              <i className="ri-gift-line text-4xl text-white"></i>
-            </div>
-            <h3 className="text-2xl font-bold text-gsg-black mb-3">Free Standard Shipping</h3>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              We're working on a free standard shipping option for qualifying orders. Stay tuned for updates on minimum spend thresholds and eligible areas.
+        {/* How we price delivery — formulas + calculator */}
+        <div id="delivery-rates" className="scroll-mt-24 mb-20">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-gsg-black mb-3">How Delivery Is Priced</h2>
+            <p className="text-gray-500 max-w-2xl mx-auto">
+              No surprises — every paid option uses a published formula based on distance (km) and your cart total.
+              The same math runs at checkout before you pay.
             </p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8 items-start">
+            <div className="space-y-4">
+              {DELIVERY_FORMULA_COPY.map((f) => (
+                <div
+                  key={f.id}
+                  className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <h3 className="text-lg font-bold text-gsg-black">{f.name}</h3>
+                    <span className="text-xs font-semibold text-gsg-purple bg-purple-50 px-2.5 py-1 rounded-full whitespace-nowrap">
+                      {f.schedule}
+                    </span>
+                  </div>
+                  <p className="font-mono text-sm text-gsg-purple bg-purple-50/60 rounded-xl px-3 py-2.5 mb-3">
+                    {f.formula}
+                  </p>
+                  <p className="text-sm text-gray-600 leading-relaxed">{f.note}</p>
+                </div>
+              ))}
+            </div>
+            <DeliveryFeeCalculator />
           </div>
         </div>
 

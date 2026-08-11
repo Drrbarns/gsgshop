@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { createClient } from '@supabase/supabase-js';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit';
+import {
+  calculateDeliveryFee,
+  methodNeedsDistance,
+} from '@/lib/delivery-pricing';
 
 /**
  * POST /api/checkout — server-side order creation.
@@ -23,6 +27,7 @@ import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-lim
  *       firstName, lastName, email, phone, address, city, region
  *     },
  *     deliveryMethod: string,
+ *     deliveryKm?: number,   // required for Sole/Joint/Free Delivery
  *     paymentMethod: 'moolre' | 'paystack',
  *     jointExpressNeighbor?: { name?: string; phone?: string },
  *   }
@@ -112,6 +117,8 @@ export async function POST(req: Request) {
         const items = Array.isArray(body.items) ? (body.items as CartItemInput[]) : [];
         const shipping = (body.shipping || {}) as ShippingInput;
         const deliveryMethod = typeof body.deliveryMethod === 'string' ? body.deliveryMethod : 'pickup';
+        const deliveryKmRaw = Number(body.deliveryKm);
+        const deliveryKm = Number.isFinite(deliveryKmRaw) ? Math.max(0, deliveryKmRaw) : 0;
         const paymentMethod: 'moolre' | 'paystack' =
             body.paymentMethod === 'paystack' ? 'paystack' : 'moolre';
         const jointExpressNeighbor = body.jointExpressNeighbor || null;
@@ -128,6 +135,13 @@ export async function POST(req: Request) {
         if (!shipping.firstName || !shipping.lastName) return bad('Missing customer name');
         if (!shipping.phone) return bad('Missing phone number');
         if (!shipping.address || !shipping.city || !shipping.region) return bad('Incomplete shipping address');
+
+        if (methodNeedsDistance(deliveryMethod) && !(deliveryKm > 0)) {
+            return bad('Delivery distance (km) is required for this delivery method');
+        }
+        if (deliveryKm > 500) {
+            return bad('Delivery distance looks too high — please check the km value');
+        }
 
         // Resolve product rows for everything in the cart, by UUID for
         // anything that looks like one and by slug for the rest. We use the
@@ -209,7 +223,14 @@ export async function POST(req: Request) {
             });
         }
 
-        const shippingCost = 0;
+        // SECURITY: recompute delivery fee server-side from published formulas.
+        // Never trust a client-supplied shipping amount.
+        const delivery = calculateDeliveryFee({
+            method: deliveryMethod,
+            km: deliveryKm,
+            purchaseTotal: subtotal,
+        });
+        const shippingCost = delivery.fee;
         const tax = 0;
         const total = subtotal + shippingCost + tax;
         if (!Number.isFinite(total) || total <= 0) return bad('Invalid order total', 400);
@@ -244,6 +265,14 @@ export async function POST(req: Request) {
                         first_name: shipping.firstName,
                         last_name: shipping.lastName,
                         tracking_number: trackingNumber,
+                        delivery_km: deliveryKm,
+                        delivery_formula: delivery.formulaLabel,
+                        delivery_breakdown: {
+                            distance_component: delivery.distanceComponent,
+                            purchase_component: delivery.purchaseComponent,
+                            raw_total: delivery.rawTotal,
+                            fee: delivery.fee,
+                        },
                         ...(deliveryMethod === 'joint-express' && jointExpressNeighbor
                             ? { joint_express_neighbor: jointExpressNeighbor }
                             : {}),

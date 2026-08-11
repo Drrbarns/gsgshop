@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import CheckoutSteps from '@/components/CheckoutSteps';
 import OrderSummary from '@/components/OrderSummary';
@@ -10,6 +10,10 @@ import { supabase } from '@/lib/supabase';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useRecaptcha } from '@/hooks/useRecaptcha';
 import { shopperUrl } from '@/lib/site-urls';
+import {
+  calculateDeliveryFee,
+  methodNeedsDistance,
+} from '@/lib/delivery-pricing';
 
 export default function CheckoutPage() {
   usePageTitle('Checkout');
@@ -41,6 +45,7 @@ export default function CheckoutPage() {
   ];
 
   const [deliveryMethod, setDeliveryMethod] = useState('pickup');
+  const [deliveryKm, setDeliveryKm] = useState('');
   const [jointExpressNeighbor, setJointExpressNeighbor] = useState({ name: '', phone: '' });
   // 'moolre' = Mobile Money via Moolre. 'paystack' = Card payments via Paystack.
   const [paymentMethod, setPaymentMethod] = useState<'moolre' | 'paystack'>('moolre');
@@ -70,11 +75,36 @@ export default function CheckoutPage() {
   ];
 
   const deliveryOptionsList = [
-    { value: 'personal-shopper', label: 'Add To My Personal Shopper', desc: 'Send your list to your personal shopper.', href: '/shopper/shopping-list' },
-    { value: 'free-delivery', label: 'Free Delivery (Tue/Fri)', desc: 'Tue/Fri only. Min 5% discount as Free Delivery Discount. Confirmed before noon of preceding day.', href: null },
-    { value: 'sole-express', label: 'Sole Express Delivery (Daily)', desc: 'Fresh/perishable must use Express. 2hr, 6hr, 12hr, 24hr or 48hr after confirmation.', href: null },
-    { value: 'joint-express', label: 'Joint Express – Myself & Neighbor (Daily)', desc: 'Share delivery fee with neighbor; items stay private. Same perishable rule. 2hr–48hr slots.', href: null },
-    { value: 'pickup', label: 'Pickup (Within 72 Hrs.)', desc: 'Within 72hrs (excluding Sunday). Pickup location shown at confirmation.', href: null },
+    {
+      value: 'personal-shopper',
+      label: 'Add To My Personal Shopper',
+      desc: 'Send your list to your personal shopper. Delivery priced separately there.',
+      href: '/shopper/shopping-list',
+    },
+    {
+      value: 'free-delivery',
+      label: 'Free Delivery (Tue/Fri)',
+      desc: 'GH₵0.50 × km × 3 − 1% of purchase. Confirm before noon the preceding day.',
+      href: null,
+    },
+    {
+      value: 'sole-express',
+      label: 'Sole Express Delivery (Daily)',
+      desc: 'GH₵0.50 × km × 5 + 1.5% of purchase. Required for fresh/perishable. 2hr–48hr slots.',
+      href: null,
+    },
+    {
+      value: 'joint-express',
+      label: 'Joint Express – Myself & Neighbor (Daily)',
+      desc: '(GH₵0.50 × km × 7 + 1.5% of purchase) ÷ 2. Share with a neighbour; items stay private.',
+      href: null,
+    },
+    {
+      value: 'pickup',
+      label: 'Pickup (Within 72 Hrs.)',
+      desc: 'GH₵0 — no delivery fee. Collect within 72hrs (excl. Sunday) at the hub in your confirmation.',
+      href: null,
+    },
   ];
 
   // Check auth — runs once. Keeping cart/router/isLoading out of the deps so
@@ -109,11 +139,22 @@ export default function CheckoutPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentStep]);
 
-  // Calculate Totals
+  // Calculate Totals — delivery fee from published formulas
   const subtotal = cartSubtotal;
-  const shippingCost = 0; // Delivery options temporarily disabled
-  const tax = 0; // No Tax
+  const kmValue = Math.max(0, parseFloat(deliveryKm) || 0);
+  const deliveryBreakdown = useMemo(
+    () =>
+      calculateDeliveryFee({
+        method: deliveryMethod,
+        km: kmValue,
+        purchaseTotal: subtotal,
+      }),
+    [deliveryMethod, kmValue, subtotal]
+  );
+  const shippingCost = deliveryBreakdown.fee;
+  const tax = 0;
   const total = subtotal + shippingCost + tax;
+  const needsKm = methodNeedsDistance(deliveryMethod);
 
   const validateShipping = () => {
     const newErrors: any = {};
@@ -137,13 +178,29 @@ export default function CheckoutPage() {
   };
 
   const handleContinueToPayment = async () => {
-    // Skip step 3 and directly initiate payment with default method (Moolre/Mobile Money)
+    if (needsKm && !(kmValue > 0)) {
+      setErrors((prev: any) => ({
+        ...prev,
+        deliveryKm: 'Enter the distance in km from our GSG hub to your address.',
+      }));
+      return;
+    }
+    setErrors((prev: any) => {
+      const next = { ...prev };
+      delete next.deliveryKm;
+      return next;
+    });
     await handlePlaceOrder();
   };
 
   const handlePlaceOrder = async () => {
     if (cart.length === 0) {
       alert('Your cart is empty');
+      return;
+    }
+
+    if (needsKm && !(kmValue > 0)) {
+      alert('Please enter your delivery distance in kilometres.');
       return;
     }
 
@@ -188,6 +245,7 @@ export default function CheckoutPage() {
             region: shippingData.region,
           },
           deliveryMethod,
+          deliveryKm: needsKm ? kmValue : 0,
           paymentMethod,
           jointExpressNeighbor:
             deliveryMethod === 'joint-express' && (jointExpressNeighbor.name || jointExpressNeighbor.phone)
@@ -496,31 +554,103 @@ export default function CheckoutPage() {
                     Delivery Method
                   </h2>
                   <div className="space-y-3">
-                    {deliveryOptionsList.map((opt) => (
-                      <label
-                        key={opt.value}
-                        className={`flex items-start justify-between p-4 border-2 rounded-xl cursor-pointer transition-all ${deliveryMethod === opt.value ? 'border-gsg-purple bg-purple-50' : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'}`}
-                      >
-                        <div className="flex items-start space-x-4">
-                          <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${deliveryMethod === opt.value ? 'border-gsg-purple' : 'border-gray-300'}`}>
-                            {deliveryMethod === opt.value && <div className="w-2.5 h-2.5 rounded-full bg-gsg-purple"></div>}
+                    {deliveryOptionsList.map((opt) => {
+                      const preview = calculateDeliveryFee({
+                        method: opt.value,
+                        km: kmValue || 0,
+                        purchaseTotal: subtotal,
+                      });
+                      const showFee =
+                        opt.value === 'pickup' ||
+                        opt.value === 'personal-shopper' ||
+                        kmValue > 0;
+                      return (
+                        <label
+                          key={opt.value}
+                          className={`flex items-start justify-between gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${deliveryMethod === opt.value ? 'border-gsg-purple bg-purple-50' : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'}`}
+                        >
+                          <div className="flex items-start space-x-4 min-w-0">
+                            <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${deliveryMethod === opt.value ? 'border-gsg-purple' : 'border-gray-300'}`}>
+                              {deliveryMethod === opt.value && <div className="w-2.5 h-2.5 rounded-full bg-gsg-purple"></div>}
+                            </div>
+                            <input
+                              type="radio"
+                              name="delivery"
+                              value={opt.value}
+                              checked={deliveryMethod === opt.value}
+                              onChange={(e) => setDeliveryMethod(e.target.value)}
+                              className="hidden"
+                            />
+                            <div className="min-w-0">
+                              <p className={`font-bold ${deliveryMethod === opt.value ? 'text-gsg-purple' : 'text-gsg-black'}`}>{opt.label}</p>
+                              <p className="text-sm text-gray-500 mt-1 leading-relaxed">{opt.desc}</p>
+                            </div>
                           </div>
-                          <input
-                            type="radio"
-                            name="delivery"
-                            value={opt.value}
-                            checked={deliveryMethod === opt.value}
-                            onChange={(e) => setDeliveryMethod(e.target.value)}
-                            className="hidden"
-                          />
-                          <div>
-                            <p className={`font-bold ${deliveryMethod === opt.value ? 'text-gsg-purple' : 'text-gsg-black'}`}>{opt.label}</p>
-                            <p className="text-sm text-gray-500 mt-1 leading-relaxed">{opt.desc}</p>
+                          <div className="text-right shrink-0">
+                            <p className={`text-sm font-bold ${deliveryMethod === opt.value ? 'text-gsg-purple' : 'text-gsg-black'}`}>
+                              {!showFee
+                                ? 'Enter km'
+                                : preview.fee === 0
+                                  ? 'GH₵0.00'
+                                  : `GH₵${preview.fee.toFixed(2)}`}
+                            </p>
                           </div>
-                        </div>
-                      </label>
-                    ))}
+                        </label>
+                      );
+                    })}
                   </div>
+
+                  {needsKm && (
+                    <div className="mt-6 p-5 rounded-xl bg-purple-50 border border-purple-100">
+                      <label htmlFor="delivery-km" className="block font-bold text-gsg-black mb-1">
+                        Distance from GSG hub (km) <span className="text-red-500">*</span>
+                      </label>
+                      <p className="text-sm text-gray-600 mb-3">
+                        Used in the delivery formula. Check Google Maps from our hub to your address, or estimate — we&apos;ll confirm if needed.
+                      </p>
+                      <input
+                        id="delivery-km"
+                        type="number"
+                        min={0.1}
+                        step={0.1}
+                        value={deliveryKm}
+                        onChange={(e) => {
+                          setDeliveryKm(e.target.value);
+                          if (errors.deliveryKm) {
+                            setErrors((prev: any) => {
+                              const next = { ...prev };
+                              delete next.deliveryKm;
+                              return next;
+                            });
+                          }
+                        }}
+                        className={`w-full max-w-xs px-4 py-3 border-2 rounded-xl outline-none focus:border-gsg-purple ${
+                          errors.deliveryKm ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white'
+                        }`}
+                        placeholder="e.g. 8"
+                      />
+                      {errors.deliveryKm && (
+                        <p className="text-xs text-red-500 mt-1.5 font-medium">{errors.deliveryKm}</p>
+                      )}
+                      {kmValue > 0 && (
+                        <ul className="mt-4 space-y-1 text-sm text-gray-700">
+                          {deliveryBreakdown.lines.map((line) => (
+                            <li key={line} className="flex gap-2">
+                              <i className="ri-check-line text-gsg-purple mt-0.5" />
+                              <span>{line}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <Link
+                        href="/shipping#delivery-rates"
+                        className="inline-block mt-3 text-sm font-semibold text-gsg-purple hover:underline"
+                      >
+                        See full rate formulas →
+                      </Link>
+                    </div>
+                  )}
+
                   {deliveryMethod === 'joint-express' && (
                     <div className="mt-6 p-5 rounded-xl bg-gray-50 border border-gray-200">
                       <p className="font-bold text-gsg-black mb-3">Neighbor / Colleague details (optional)</p>
@@ -653,6 +783,12 @@ export default function CheckoutPage() {
               shipping={shippingCost}
               tax={tax}
               total={total}
+              shippingLabel="Delivery"
+              shippingNote={
+                needsKm && !(kmValue > 0)
+                  ? 'Enter distance (km) to calculate your delivery fee.'
+                  : deliveryBreakdown.formulaLabel
+              }
             />
           </div>
         </div>

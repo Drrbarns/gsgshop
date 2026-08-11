@@ -13,9 +13,20 @@ interface OrderSummaryProps {
   shipping: number;
   tax: number;
   total: number;
+  /** Optional short note under the shipping line (e.g. formula). */
+  shippingNote?: string | null;
+  shippingLabel?: string;
 }
 
-export default function OrderSummary({ items, subtotal, shipping, tax, total }: OrderSummaryProps) {
+export default function OrderSummary({
+  items,
+  subtotal,
+  shipping,
+  tax,
+  total,
+  shippingNote,
+  shippingLabel = 'Delivery',
+}: OrderSummaryProps) {
   return (
     <div className="bg-white rounded-xl shadow-sm p-6 sticky top-4">
       <h2 className="text-xl font-bold text-gray-900 mb-6">Order Summary</h2>
@@ -47,13 +58,23 @@ export default function OrderSummary({ items, subtotal, shipping, tax, total }: 
           <span>Subtotal</span>
           <span className="font-semibold">GH₵ {subtotal.toFixed(2)}</span>
         </div>
-        <div className="flex justify-between text-gray-700">
-          <span>Shipping</span>
-          <span className="font-semibold">
-            {shipping === 0 ? 'FREE' : `GH₵ ${shipping.toFixed(2)}`}
-          </span>
+        <div>
+          <div className="flex justify-between text-gray-700">
+            <span>{shippingLabel}</span>
+            <span className="font-semibold">
+              {shipping === 0 ? 'GH₵ 0.00' : `GH₵ ${shipping.toFixed(2)}`}
+            </span>
+          </div>
+          {shippingNote && (
+            <p className="text-xs text-gray-500 mt-1 leading-relaxed">{shippingNote}</p>
+          )}
         </div>
-
+        {tax > 0 && (
+          <div className="flex justify-between text-gray-700">
+            <span>Tax</span>
+            <span className="font-semibold">GH₵ {tax.toFixed(2)}</span>
+          </div>
+        )}
       </div>
 
       <div className="border-t border-gray-200 mt-4 pt-4">

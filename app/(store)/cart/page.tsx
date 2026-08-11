@@ -54,8 +54,8 @@ export default function CartPage() {
     }
   }
 
-  const shipping = subtotal >= 200 ? 0 : 15;
-  const total = subtotal - couponDiscount + shipping;
+  // Delivery is calculated at checkout from published km formulas — don't invent a flat estimate here.
+  const total = subtotal - couponDiscount;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -209,18 +209,26 @@ export default function CartPage() {
                       </div>
                     )}
 
-                    <div className="flex justify-between text-gray-600">
-                      <span>Shipping Estimate</span>
-                      <span className="font-bold text-gsg-black">{shipping === 0 ? 'FREE' : `GH₵${shipping.toFixed(2)}`}</span>
+                    <div className="flex justify-between text-gray-600 gap-4">
+                      <span>Delivery</span>
+                      <span className="font-bold text-gsg-black text-right text-sm">
+                        Calculated at checkout
+                      </span>
                     </div>
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                      Sole / Joint Express and Free Delivery use published km formulas.{' '}
+                      <Link href="/shipping#delivery-rates" className="text-gsg-purple font-semibold hover:underline">
+                        See rates
+                      </Link>
+                    </p>
                   </div>
 
                   <div className="border-t border-dashed border-gray-200 pt-4 mb-6">
                     <div className="flex justify-between items-end">
-                      <span className="text-gray-900 font-bold">Total</span>
+                      <span className="text-gray-900 font-bold">Subtotal</span>
                       <span className="text-2xl font-extrabold text-gsg-purple">GH₵{total.toFixed(2)}</span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1 text-right">Including taxes</p>
+                    <p className="text-xs text-gray-400 mt-1 text-right">Delivery added at checkout</p>
                   </div>
 
                   <AdvancedCouponSystem
