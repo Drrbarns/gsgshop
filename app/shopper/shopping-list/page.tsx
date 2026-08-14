@@ -58,7 +58,7 @@ export default function ShoppingList() {
   };
 
   const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.estimatedPrice) || 0), 0);
-  const markup = subtotal * 0.10;
+  const markup = subtotal * 0.05;
   const total = subtotal + markup;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -261,7 +261,7 @@ export default function ShoppingList() {
                     <span className="font-medium">GH₵{subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
-                    <span>Markup (10%)</span>
+                    <span>Markup (5% or less)</span>
                     <span className="font-medium">GH₵{markup.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-gray-600 text-sm italic">

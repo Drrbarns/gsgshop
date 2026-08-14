@@ -17,7 +17,7 @@ import { sendShopperPaymentLink } from '@/lib/notifications';
  *   }
  *
  * If totalFinal is not supplied we compute it from:
- *   sum(market_price ?? estimated_price) + markup(10%) + delivery_fee
+ *   sum(market_price ?? estimated_price) + markup(5% or less) + delivery_fee
  *
  * Always responds with the updated row (or the existing one if no changes).
  */
@@ -70,7 +70,7 @@ export async function PATCH(
     // an outdated markup number from when the customer first submitted the
     // list. Falls back to the row's stored markup if subtotal is zero.
     const markup = itemsSubtotal > 0
-        ? Math.round(itemsSubtotal * 0.10 * 100) / 100
+        ? Math.round(itemsSubtotal * 0.05 * 100) / 100
         : Number(req0.markup ?? 0);
 
     const deliveryFee = explicitDeliveryFee !== null

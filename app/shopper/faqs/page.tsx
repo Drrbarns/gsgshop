@@ -3,7 +3,7 @@ import { createShopperPageMetadata, generateFaqSchema } from '@/lib/seo';
 export const metadata = createShopperPageMetadata({
   title: 'FAQ',
   description:
-    'Answers about My Personal Shopper by GSG — how the service works, the 10% service markup, delivery fees, payments, produce sourcing and tracking your request in Ghana.',
+    'Answers about My Personal Shopper by GSG — how the service works, the 5% or less Markup, delivery fees, payments, produce sourcing and tracking your request in Ghana.',
   path: '/faqs',
   keywords: ['personal shopper FAQ Ghana', 'markup fee', 'delivery fee Accra'],
 });
@@ -12,11 +12,11 @@ export default function ShopperFAQs() {
   const faqs = [
     {
       q: "How does the Personal Shopper service work?",
-      a: "Simply create a shopping list on our website with the items you need and your estimated prices. We will review it, source the items at market price, and deliver them to your door. You pay a 10% service markup on the subtotal."
+      a: "Simply create a shopping list on our website with the items you need and your estimated prices. We will review it, source the items at market price, and deliver them to your door. You pay a 5% or less Markup on the subtotal."
     },
     {
       q: "What is the markup fee?",
-      a: "We charge a flat 10% service markup on the total cost of the items we purchase for you."
+      a: "We charge a 5% or less Markup on the total cost of the items we purchase for you."
     },
     {
       q: "How is the delivery fee calculated?",
@@ -24,7 +24,7 @@ export default function ShopperFAQs() {
     },
     {
       q: "Are there any hidden fees?",
-      a: "No. You pay the exact market price for the goods, plus our 10% service markup, and the delivery fee. In rare cases, a sourcing fee may apply for hard-to-find items, but we will always ask for your approval first."
+      a: "No. You pay the exact market price for the goods, plus our 5% or less Markup, and the delivery fee. In rare cases, a sourcing fee may apply for hard-to-find items, but we will always ask for your approval first."
     },
     {
       q: "What if the actual market price is higher than my estimate?",

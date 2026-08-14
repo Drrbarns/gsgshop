@@ -15,7 +15,7 @@ export async function GET() {
 > GSG Convenience Goods & More is a Ghanaian online convenience store delivering
 > groceries, household essentials, personal care, stationery, phones, electronics
 > and fashion across Accra and nationwide. It also operates a Personal Shopper
-> service that sources any item at market price with a 10% service markup.
+> service that sources any item at market price with a 5% or less Markup.
 
 ## About
 - Name: GSG Convenience Goods & More
@@ -47,7 +47,7 @@ export async function GET() {
 - Customer experience: ${shopper}/customer-experience
 
 ## Key facts
-- Personal Shopper markup: 10% service markup on the item subtotal, no hidden fees.
+- Personal Shopper markup: 5% or less Markup on the item subtotal, no hidden fees.
 - Delivery fee depends on the delivery option and destination distance.
 - Fresh/perishable items must use Sole Express or Joint Express.
 - Free Delivery runs Tuesdays and Fridays for qualifying orders (5% discount).
