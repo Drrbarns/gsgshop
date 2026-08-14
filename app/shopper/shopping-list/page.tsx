@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import DeliveryLocationPicker from '@/components/DeliveryLocationPicker';
 
 interface RequestItem {
   id: string;
@@ -16,66 +17,86 @@ interface RequestItem {
 export default function ShoppingList() {
   const router = useRouter();
   const [items, setItems] = useState<RequestItem[]>([
-    { id: '1', nameBrand: '', qtySizeRange: '', remark: '', estimatedPrice: '', sourceType: '' }
+    { id: '1', nameBrand: '', qtySizeRange: '', remark: '', estimatedPrice: '', sourceType: '' },
   ]);
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryKm, setDeliveryKm] = useState('');
+  const [deliveryLocationLabel, setDeliveryLocationLabel] = useState('');
   const [preferredTime, setPreferredTime] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [locationError, setLocationError] = useState('');
 
   useEffect(() => {
-    // Try to pre-fill user info if logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setContactEmail(session.user.email || '');
-        // Fetch profile
-        supabase.from('profiles').select('*').eq('id', session.user.id).single().then(({ data }) => {
-          if (data) {
-            if (data.full_name) setContactName(data.full_name);
-            if (data.phone) setContactPhone(data.phone);
-          }
-        });
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data }) => {
+            if (data) {
+              if (data.full_name) setContactName(data.full_name);
+              if (data.phone) setContactPhone(data.phone);
+            }
+          });
       }
     });
   }, []);
 
   const addItem = () => {
-    setItems([...items, { id: Date.now().toString(), nameBrand: '', qtySizeRange: '', remark: '', estimatedPrice: '', sourceType: '' }]);
+    setItems([
+      ...items,
+      {
+        id: Date.now().toString(),
+        nameBrand: '',
+        qtySizeRange: '',
+        remark: '',
+        estimatedPrice: '',
+        sourceType: '',
+      },
+    ]);
   };
 
   const removeItem = (id: string) => {
     if (items.length > 1) {
-      setItems(items.filter(item => item.id !== id));
+      setItems(items.filter((item) => item.id !== id));
     }
   };
 
   const updateItem = (id: string, field: keyof RequestItem, value: string) => {
-    setItems(items.map(item => item.id === id ? { ...item, [field]: value } : item));
+    setItems(items.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
   };
 
   const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.estimatedPrice) || 0), 0);
   const markup = subtotal * 0.05;
   const total = subtotal + markup;
+  const kmValue = Math.max(0, parseFloat(deliveryKm) || 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setLocationError('');
 
     try {
-      // Validate
       if (!contactName || !contactPhone || !deliveryAddress) {
         throw new Error('Please fill in all required contact and delivery fields.');
       }
-      if (items.some(i => !i.nameBrand || !i.qtySizeRange || !i.estimatedPrice)) {
+      if (!(kmValue > 0)) {
+        setLocationError('Search your delivery location so we can set the distance.');
+        throw new Error('Please select your delivery location from the search.');
+      }
+      if (items.some((i) => !i.nameBrand || !i.qtySizeRange || !i.estimatedPrice)) {
         throw new Error('Please fill in all required item fields (Name, Qty, Estimated Price).');
       }
 
-      // Create Request
       const res = await fetch('/api/shopper/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -84,24 +105,24 @@ export default function ShoppingList() {
           contactName,
           contactPhone,
           contactEmail,
-          deliveryAddress: { text: deliveryAddress },
+          deliveryAddress: {
+            text: deliveryAddress,
+            location_label: deliveryLocationLabel || null,
+            km: kmValue,
+          },
           preferredTime,
           notes,
           subtotalEst: subtotal,
           markup: markup,
-          totalEst: total
-        })
+          totalEst: total,
+          deliveryKm: kmValue,
+        }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to submit request');
 
-      // Take the customer straight to the payment page — per the original
-      // implementation plan, the estimate is payable upfront. They can still
-      // reach /track later from the success page or via the confirmation
-      // email if they abandon checkout.
       router.push(`/shopper/pay/${data.id}`);
-
     } catch (err: any) {
       setError(err.message);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -115,7 +136,9 @@ export default function ShoppingList() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-gsg-black mb-4">Create Your Shopping List</h1>
-          <p className="text-gray-600">List the items you need, and we'll source them for you at market price.</p>
+          <p className="text-gray-600">
+            List the items you need, and we&apos;ll source them for you at market price.
+          </p>
         </div>
 
         {error && (
@@ -125,19 +148,21 @@ export default function ShoppingList() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Items Section */}
           <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-xl font-bold text-gsg-black mb-6">Items</h2>
-            
+
             <div className="space-y-6">
               {items.map((item, index) => (
-                <div key={item.id} className="relative p-4 md:p-6 border border-gray-200 rounded-xl bg-gray-50/50">
+                <div
+                  key={item.id}
+                  className="relative p-4 md:p-6 border border-gray-200 rounded-xl bg-gray-50/50"
+                >
                   <div className="absolute -top-3 -left-3 w-8 h-8 bg-gsg-purple text-white rounded-full flex items-center justify-center font-bold text-sm">
                     {index + 1}
                   </div>
                   {items.length > 1 && (
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={() => removeItem(item.id)}
                       className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors"
                     >
@@ -147,45 +172,53 @@ export default function ShoppingList() {
 
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-2">
                     <div className="md:col-span-4">
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Item Name / Brand *</label>
-                      <input 
-                        type="text" 
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Item Name / Brand *
+                      </label>
+                      <input
+                        type="text"
                         required
                         value={item.nameBrand}
-                        onChange={e => updateItem(item.id, 'nameBrand', e.target.value)}
+                        onChange={(e) => updateItem(item.id, 'nameBrand', e.target.value)}
                         className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gsg-purple outline-none"
                         placeholder="e.g. Milo Cereal 500g"
                       />
                     </div>
                     <div className="md:col-span-3">
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Qty / Size / Range *</label>
-                      <input 
-                        type="text" 
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Qty / Size / Range *
+                      </label>
+                      <input
+                        type="text"
                         required
                         value={item.qtySizeRange}
-                        onChange={e => updateItem(item.id, 'qtySizeRange', e.target.value)}
+                        onChange={(e) => updateItem(item.id, 'qtySizeRange', e.target.value)}
                         className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gsg-purple outline-none"
                         placeholder="e.g. 2 packs"
                       />
                     </div>
                     <div className="md:col-span-3">
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Est. Price (GHS) *</label>
-                      <input 
-                        type="number" 
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Est. Price (GHS) *
+                      </label>
+                      <input
+                        type="number"
                         required
                         min="0"
                         step="0.01"
                         value={item.estimatedPrice}
-                        onChange={e => updateItem(item.id, 'estimatedPrice', e.target.value)}
+                        onChange={(e) => updateItem(item.id, 'estimatedPrice', e.target.value)}
                         className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gsg-purple outline-none"
                         placeholder="0.00"
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Produce Source</label>
-                      <select 
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Produce Source
+                      </label>
+                      <select
                         value={item.sourceType}
-                        onChange={e => updateItem(item.id, 'sourceType', e.target.value)}
+                        onChange={(e) => updateItem(item.id, 'sourceType', e.target.value)}
                         className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gsg-purple outline-none text-sm"
                       >
                         <option value="">N/A</option>
@@ -195,11 +228,13 @@ export default function ShoppingList() {
                       </select>
                     </div>
                     <div className="md:col-span-12">
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Remarks / Comments</label>
-                      <input 
-                        type="text" 
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Remarks / Comments
+                      </label>
+                      <input
+                        type="text"
                         value={item.remark}
-                        onChange={e => updateItem(item.id, 'remark', e.target.value)}
+                        onChange={(e) => updateItem(item.id, 'remark', e.target.value)}
                         className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gsg-purple outline-none"
                         placeholder="Any specific instructions for this item?"
                       />
@@ -209,8 +244,8 @@ export default function ShoppingList() {
               ))}
             </div>
 
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={addItem}
               className="mt-6 flex items-center gap-2 text-gsg-purple font-bold hover:text-gsg-purple-dark transition-colors"
             >
@@ -218,43 +253,105 @@ export default function ShoppingList() {
             </button>
           </div>
 
-          {/* Contact & Delivery Section */}
           <div className="grid md:grid-cols-2 gap-8">
             <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
               <h2 className="text-xl font-bold text-gsg-black mb-6">Contact & Delivery</h2>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">Full Name *</label>
-                  <input type="text" required value={contactName} onChange={e => setContactName(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gsg-purple outline-none" />
+                  <input
+                    type="text"
+                    required
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gsg-purple outline-none"
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Phone Number *</label>
-                  <input type="tel" required value={contactPhone} onChange={e => setContactPhone(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gsg-purple outline-none" />
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Phone Number *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gsg-purple outline-none"
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Email (Optional)</label>
-                  <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gsg-purple outline-none" />
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Email (Optional)
+                  </label>
+                  <input
+                    type="email"
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gsg-purple outline-none"
+                  />
+                </div>
+
+                <DeliveryLocationPicker
+                  valueKm={deliveryKm}
+                  error={locationError}
+                  onDistanceChange={(km, meta) => {
+                    setDeliveryKm(km);
+                    if (meta?.label) setDeliveryLocationLabel(meta.label);
+                    if (km) setLocationError('');
+                  }}
+                  onPlaceFill={({ addressHint }) => {
+                    if (addressHint && !deliveryAddress.trim()) {
+                      setDeliveryAddress(addressHint);
+                    }
+                  }}
+                />
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Delivery Address *
+                  </label>
+                  <textarea
+                    required
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    rows={3}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gsg-purple outline-none"
+                    placeholder="Street, house number, and landmarks"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Add street details after selecting your area above.
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Delivery Address *</label>
-                  <textarea required value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} rows={3} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gsg-purple outline-none" placeholder="Full address including landmarks"></textarea>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Preferred Delivery Time
+                  </label>
+                  <input
+                    type="text"
+                    value={preferredTime}
+                    onChange={(e) => setPreferredTime(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gsg-purple outline-none"
+                    placeholder="e.g. Tomorrow morning, Today by 5pm"
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Preferred Delivery Time</label>
-                  <input type="text" value={preferredTime} onChange={e => setPreferredTime(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gsg-purple outline-none" placeholder="e.g. Tomorrow morning, Today by 5pm" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">General Notes</label>
-                  <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gsg-purple outline-none"></textarea>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    General Notes
+                  </label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={2}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gsg-purple outline-none"
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Summary Section */}
             <div>
               <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 sticky top-24">
                 <h2 className="text-xl font-bold text-gsg-black mb-6">Estimate Summary</h2>
-                
+
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between text-gray-600">
                     <span>Items Subtotal (Est.)</span>
@@ -263,6 +360,12 @@ export default function ShoppingList() {
                   <div className="flex justify-between text-gray-600">
                     <span>Markup (5% or less)</span>
                     <span className="font-medium">GH₵{markup.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600 text-sm">
+                    <span>Distance</span>
+                    <span className="font-medium">
+                      {kmValue > 0 ? `${kmValue.toFixed(1)} km` : 'Select location'}
+                    </span>
                   </div>
                   <div className="flex justify-between text-gray-600 text-sm italic">
                     <span>Delivery Fee</span>
@@ -280,15 +383,19 @@ export default function ShoppingList() {
 
                 <div className="bg-purple-50 p-4 rounded-xl mb-6 text-sm text-purple-800">
                   <i className="ri-information-line mr-2"></i>
-                  You'll pay this estimate upfront to lock in your shopper. If actual market prices differ significantly, we'll contact you before delivery to adjust — extra owed becomes a top-up, refunds are issued in 1–3 business days.
+                  You&apos;ll pay this estimate upfront to lock in your shopper. If actual market
+                  prices differ significantly, we&apos;ll contact you before delivery to adjust —
+                  extra owed becomes a top-up, refunds are issued in 1–3 business days.
                 </div>
 
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={loading || items.length === 0}
                   className="w-full bg-gsg-black hover:bg-gsg-purple text-white py-4 rounded-xl font-bold transition-all shadow-lg disabled:opacity-50 flex justify-center items-center gap-2"
                 >
-                  {loading ? <i className="ri-loader-4-line animate-spin text-xl"></i> : (
+                  {loading ? (
+                    <i className="ri-loader-4-line animate-spin text-xl"></i>
+                  ) : (
                     <>
                       <i className="ri-secure-payment-line text-lg"></i>
                       Submit & Pay GH₵{total.toFixed(2)}

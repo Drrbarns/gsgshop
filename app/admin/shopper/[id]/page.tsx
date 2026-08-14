@@ -37,7 +37,11 @@ type ShopperRequest = {
   contact_name: string;
   contact_phone: string;
   contact_email: string | null;
-  delivery_address: { text?: string } | null;
+  delivery_address: {
+    text?: string;
+    location_label?: string | null;
+    km?: number | null;
+  } | null;
   preferred_time: string | null;
   notes: string | null;
   created_at: string;
@@ -291,6 +295,11 @@ export default function AdminShopperRequestDetail({ params }: { params: Promise<
 
   const statusStyle = STATUS_STYLES[request.status] ?? STATUS_STYLES.SUBMITTED;
   const addressText = request.delivery_address?.text || '';
+  const addressLabel = request.delivery_address?.location_label || '';
+  const addressKm =
+    typeof request.delivery_address?.km === 'number' && request.delivery_address.km > 0
+      ? request.delivery_address.km
+      : null;
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
@@ -638,10 +647,16 @@ export default function AdminShopperRequestDetail({ params }: { params: Promise<
             <div className="space-y-3 text-sm">
               <div>
                 <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400">Delivery address</p>
+                {(addressLabel || addressKm != null) && (
+                  <p className="text-gray-700 mt-0.5 text-sm">
+                    {addressLabel || 'Selected area'}
+                    {addressKm != null ? ` · ${addressKm.toFixed(1)} km from hub` : ''}
+                  </p>
+                )}
                 <p className="text-gray-900 mt-0.5">{addressText || '—'}</p>
-                {addressText && (
+                {(addressText || addressLabel) && (
                   <a
-                    href={`https://www.google.com/maps/search/${encodeURIComponent(addressText)}`}
+                    href={`https://www.google.com/maps/search/${encodeURIComponent(addressLabel || addressText)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-xs text-purple-700 hover:underline inline-flex items-center gap-1 mt-1"
