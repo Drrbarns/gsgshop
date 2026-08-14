@@ -11,43 +11,126 @@ import {
 
 /**
  * POST /api/delivery/distance
+ * Body: { query?: string; lat?: number; lng?: number; reverse?: boolean }
  *
- * Body: { query?: string; lat?: number; lng?: number }
+ * Resolves a Ghana location and returns road distance (km) from the GSG East Legon hub.
  *
- * Resolves a Ghana location (popular list first, then OpenStreetMap Nominatim)
- * and returns approximate road distance (km) from the GSG East Legon hub.
+ * GET /api/delivery/distance?q=...
+ * Returns popular + Nominatim suggestions for the picker.
  */
+
+const NOMINATIM_UA =
+  'GSGShopDelivery/1.0 (goods.gsgbrands.com.gh; delivery distance)';
+
+/** Greater Accra-ish viewbox (west,north,east,south) for Nominatim bias */
+const ACCRA_VIEWBOX = '-0.45,5.85,0.15,5.40';
 
 type NominatimResult = {
   lat: string;
   lon: string;
   display_name: string;
+  type?: string;
+  class?: string;
+  address?: {
+    city?: string;
+    town?: string;
+    suburb?: string;
+    state?: string;
+    county?: string;
+  };
 };
 
-async function geocodeNominatim(query: string): Promise<{ label: string; point: LatLng } | null> {
-  const url = new URL('https://nominatim.openstreetmap.org/search');
-  url.searchParams.set('q', query);
-  url.searchParams.set('format', 'json');
-  url.searchParams.set('limit', '1');
-  url.searchParams.set('countrycodes', 'gh');
-  url.searchParams.set('addressdetails', '0');
+async function nominatimSearch(
+  query: string,
+  limit = 5
+): Promise<Array<{ label: string; point: LatLng; city?: string; region?: string }>> {
+  const attempts = [
+    { q: query, countrycodes: 'gh', viewbox: ACCRA_VIEWBOX, bounded: '0' },
+    { q: `${query}, Accra, Ghana`, countrycodes: 'gh', viewbox: ACCRA_VIEWBOX, bounded: '0' },
+    { q: `${query}, Ghana`, countrycodes: 'gh' },
+    { q: query }, // last resort — no country filter (matches escrow behaviour)
+  ];
 
-  const res = await fetch(url.toString(), {
-    headers: {
-      'User-Agent': 'GSGShopDelivery/1.0 (goods.gsgbrands.com.gh; delivery distance)',
-      Accept: 'application/json',
-    },
-    next: { revalidate: 0 },
-  });
+  for (const attempt of attempts) {
+    const url = new URL('https://nominatim.openstreetmap.org/search');
+    url.searchParams.set('q', attempt.q);
+    url.searchParams.set('format', 'jsonv2');
+    url.searchParams.set('limit', String(limit));
+    url.searchParams.set('addressdetails', '1');
+    if (attempt.countrycodes) url.searchParams.set('countrycodes', attempt.countrycodes);
+    if (attempt.viewbox) {
+      url.searchParams.set('viewbox', attempt.viewbox);
+      url.searchParams.set('bounded', attempt.bounded || '0');
+    }
 
-  if (!res.ok) return null;
-  const data = (await res.json()) as NominatimResult[];
-  if (!Array.isArray(data) || data.length === 0) return null;
-  const hit = data[0];
-  const lat = Number(hit.lat);
-  const lng = Number(hit.lon);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-  return { label: hit.display_name, point: { lat, lng } };
+    try {
+      const res = await fetch(url.toString(), {
+        headers: { 'User-Agent': NOMINATIM_UA, Accept: 'application/json' },
+        next: { revalidate: 0 },
+      });
+      if (!res.ok) continue;
+      const data = (await res.json()) as NominatimResult[];
+      if (!Array.isArray(data) || data.length === 0) continue;
+
+      return data
+        .map((hit) => {
+          const lat = Number(hit.lat);
+          const lng = Number(hit.lon);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+          return {
+            label: hit.display_name,
+            point: { lat, lng },
+            city:
+              hit.address?.suburb ||
+              hit.address?.city ||
+              hit.address?.town ||
+              undefined,
+            region: hit.address?.state || hit.address?.county || undefined,
+          };
+        })
+        .filter(Boolean) as Array<{
+        label: string;
+        point: LatLng;
+        city?: string;
+        region?: string;
+      }>;
+    } catch {
+      continue;
+    }
+  }
+  return [];
+}
+
+async function reverseGeocode(
+  lat: number,
+  lng: number
+): Promise<{ label: string; city?: string; region?: string } | null> {
+  const url = new URL('https://nominatim.openstreetmap.org/reverse');
+  url.searchParams.set('lat', String(lat));
+  url.searchParams.set('lon', String(lng));
+  url.searchParams.set('format', 'jsonv2');
+  url.searchParams.set('addressdetails', '1');
+
+  try {
+    const res = await fetch(url.toString(), {
+      headers: { 'User-Agent': NOMINATIM_UA, Accept: 'application/json' },
+      next: { revalidate: 0 },
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as NominatimResult & { error?: string };
+    if (data.error || !data.display_name) return null;
+    return {
+      label: data.display_name,
+      city:
+        data.address?.suburb ||
+        data.address?.city ||
+        data.address?.town ||
+        undefined,
+      region: data.address?.state || data.address?.county || undefined,
+    };
+  } catch {
+    return null;
+  }
 }
 
 async function roadKmViaOsrm(dest: LatLng): Promise<number | null> {
@@ -67,6 +150,37 @@ async function roadKmViaOsrm(dest: LatLng): Promise<number | null> {
   }
 }
 
+async function resolveDistance(point: LatLng, label: string, city?: string | null, region?: string | null, source?: string) {
+  const osrmKm = await roadKmViaOsrm(point);
+  const km = osrmKm ?? estimateRoadKm(haversineKm(GSG_HUB, point));
+  const method = osrmKm != null ? 'road' : 'estimated';
+
+  if (km > 500) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: 'That location looks too far for our delivery zones. Please check the place name.',
+      },
+      { status: 400 }
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    km,
+    label,
+    city: city ?? null,
+    region: region ?? null,
+    lat: point.lat,
+    lng: point.lng,
+    source: source || 'coords',
+    method,
+    hub: GSG_HUB.label,
+    straightKm: Math.round(haversineKm(GSG_HUB, point) * 10) / 10,
+    fallbackKm: distanceFromHubKm(point),
+  });
+}
+
 export async function POST(req: Request) {
   try {
     const clientId = getClientIdentifier(req);
@@ -83,97 +197,77 @@ export async function POST(req: Request) {
     const lat = Number(body.lat);
     const lng = Number(body.lng);
     const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
+    const wantReverse = Boolean(body.reverse);
 
     if (!query && !hasCoords) {
       return NextResponse.json(
-        { success: false, message: 'Enter a location (e.g. East Legon, Spintex, Tema).' },
+        { success: false, message: 'Enter a location or drop a pin on the map.' },
         { status: 400 }
       );
     }
 
-    let label = '';
-    let point: LatLng | null = null;
-    let city: string | null = null;
-    let region: string | null = null;
-    let source: 'popular' | 'geocode' | 'coords' = 'coords';
-
+    // Pin / GPS path — most reliable
     if (hasCoords) {
-      point = { lat, lng };
-      label = query || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-      source = 'coords';
-    } else {
-      const popularHits = searchPopularPlaces(query, 5);
-      const qLower = query.toLowerCase();
-      const exact = popularHits.find(
-        (p) => p.name.toLowerCase() === qLower || p.area.toLowerCase() === qLower
-      );
-      const starts = popularHits.find(
-        (p) =>
-          p.name.toLowerCase().startsWith(qLower) ||
-          p.area.toLowerCase().startsWith(qLower)
-      );
-      const match = exact || starts || (query.length >= 4 && popularHits[0] ? popularHits[0] : null);
+      let label = query || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      let city: string | null = null;
+      let region: string | null = null;
 
-      if (match) {
-        point = { lat: match.lat, lng: match.lng };
-        label = `${match.name}, ${match.city}`;
-        city = match.city;
-        region = match.region;
-        source = 'popular';
-      }
-
-      if (!point) {
-        const geo = await geocodeNominatim(`${query}, Ghana`);
-        if (!geo) {
-          return NextResponse.json(
-            {
-              success: false,
-              message: 'We could not find that location. Try a nearby landmark or area (e.g. Madina, Spintex).',
-            },
-            { status: 404 }
-          );
+      if (wantReverse || !query) {
+        const rev = await reverseGeocode(lat, lng);
+        if (rev) {
+          label = rev.label;
+          city = rev.city || null;
+          region = rev.region || null;
         }
-        point = geo.point;
-        label = geo.label;
-        source = 'geocode';
       }
+
+      return resolveDistance({ lat, lng }, label, city, region, 'coords');
     }
 
-    const osrmKm = await roadKmViaOsrm(point);
-    const km = osrmKm ?? estimateRoadKm(haversineKm(GSG_HUB, point));
-    const method = osrmKm != null ? 'road' : 'estimated';
+    // Text search: popular list → Nominatim (multi-strategy)
+    const popularHits = searchPopularPlaces(query, 5);
+    const qLower = query.toLowerCase();
+    const exact = popularHits.find(
+      (p) => p.name.toLowerCase() === qLower || p.area.toLowerCase() === qLower
+    );
+    const starts = popularHits.find(
+      (p) =>
+        p.name.toLowerCase().startsWith(qLower) ||
+        p.area.toLowerCase().startsWith(qLower)
+    );
+    const match = exact || starts || null;
 
-    if (km > 500) {
+    if (match) {
+      return resolveDistance(
+        { lat: match.lat, lng: match.lng },
+        `${match.name}, ${match.city}`,
+        match.city,
+        match.region,
+        'popular'
+      );
+    }
+
+    const geoHits = await nominatimSearch(query, 1);
+    if (geoHits.length === 0) {
       return NextResponse.json(
         {
           success: false,
-          message: 'That location looks too far for our delivery zones. Please check the place name.',
+          message:
+            'We could not find that name. Drop a pin on the map, use your GPS, or try a nearby area (e.g. Madina, Spintex).',
         },
-        { status: 400 }
+        { status: 404 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      km,
-      label,
-      city,
-      region,
-      source,
-      method,
-      hub: GSG_HUB.label,
-      // Also expose straight-line for debugging/admin — not shown in UI
-      straightKm: Math.round(haversineKm(GSG_HUB, point) * 10) / 10,
-      // Convenience: same as distanceFromHubKm when OSRM fails
-      fallbackKm: distanceFromHubKm(point),
-    });
+    const geo = geoHits[0];
+    return resolveDistance(geo.point, geo.label, geo.city, geo.region, 'geocode');
   } catch (err: any) {
     console.error('[delivery/distance]', err?.message || err);
     return NextResponse.json({ success: false, message: 'Could not calculate distance' }, { status: 500 });
   }
 }
 
-/** GET — popular place suggestions for the location picker */
+/** GET — popular + live geocode suggestions for the location picker */
 export async function GET(req: Request) {
   const clientId = getClientIdentifier(req);
   const rate = checkRateLimit(`delivery-suggest:${clientId}`, {
@@ -185,8 +279,21 @@ export async function GET(req: Request) {
   }
 
   const { searchParams } = new URL(req.url);
-  const q = searchParams.get('q') || '';
-  const suggestions = searchPopularPlaces(q, 8).map((p) => ({
+  const q = (searchParams.get('q') || '').trim();
+
+  type SuggestionRow = {
+    id: string;
+    name: string;
+    subtitle: string;
+    city: string;
+    region: string;
+    lat: number;
+    lng: number;
+    km: number;
+    source: 'popular' | 'geocode';
+  };
+
+  const popular: SuggestionRow[] = searchPopularPlaces(q, 6).map((p) => ({
     id: p.id,
     name: p.name,
     subtitle: `${p.city}, ${p.region}`,
@@ -195,7 +302,33 @@ export async function GET(req: Request) {
     lat: p.lat,
     lng: p.lng,
     km: distanceFromHubKm({ lat: p.lat, lng: p.lng }),
+    source: 'popular',
   }));
+
+  let geoSuggestions: SuggestionRow[] = [];
+  if (q.length >= 3) {
+    const hits = await nominatimSearch(q, 5);
+    geoSuggestions = hits.map((h, i) => ({
+      id: `geo-${i}-${h.point.lat.toFixed(4)}-${h.point.lng.toFixed(4)}`,
+      name: h.label.split(',')[0]?.trim() || h.label,
+      subtitle: h.label,
+      city: h.city || '',
+      region: h.region || '',
+      lat: h.point.lat,
+      lng: h.point.lng,
+      km: distanceFromHubKm(h.point),
+      source: 'geocode',
+    }));
+  }
+
+  // Dedupe by rounded lat/lng
+  const seen = new Set<string>();
+  const suggestions = [...popular, ...geoSuggestions].filter((s) => {
+    const key = `${s.lat.toFixed(3)},${s.lng.toFixed(3)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 10);
 
   return NextResponse.json({ success: true, suggestions, hub: GSG_HUB.label });
 }
