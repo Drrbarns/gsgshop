@@ -42,7 +42,7 @@ export const STORE_FAQS = [
     category: 'shipping',
     question: 'How much does shipping cost?',
     answer:
-      'Your delivery total is calculated from your delivery address and shown clearly at checkout before you pay. Pickup has no delivery fee. Sole Express, Joint Express, and Free Delivery (Tue/Fri) each have their own rate based on where you are — you only see the final amount for the option you pick.',
+      'Your delivery total is calculated from your delivery location and shown clearly at checkout before you pay. At checkout, search your area or landmark — we work out the distance for you. Pickup has no delivery fee. Sole Express, Joint Express, and Free Delivery (Tue/Fri) each show their final amount once your location is set.',
   },
   {
     category: 'shipping',

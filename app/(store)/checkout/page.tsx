@@ -14,6 +14,7 @@ import {
   calculateDeliveryFee,
   methodNeedsDistance,
 } from '@/lib/delivery-pricing';
+import DeliveryLocationPicker from '@/components/DeliveryLocationPicker';
 
 export default function CheckoutPage() {
   usePageTitle('Checkout');
@@ -177,7 +178,7 @@ export default function CheckoutPage() {
     if (!(kmValue > 0)) {
       setErrors((prev: any) => ({
         ...prev,
-        deliveryKm: 'Please enter the distance to your delivery address (km).',
+        deliveryKm: 'Search your delivery location so we can set the distance.',
       }));
       return;
     }
@@ -212,7 +213,7 @@ export default function CheckoutPage() {
     }
 
     if (needsKm && !(kmValue > 0)) {
-      alert('Please enter your delivery distance in kilometres.');
+      alert('Please search your delivery location so we can calculate the distance.');
       return;
     }
 
@@ -535,38 +536,28 @@ export default function CheckoutPage() {
                       </div>
                     </div>
 
-                    <div>
-                      <label htmlFor="delivery-km" className="block text-sm font-bold text-gray-700 mb-2">
-                        Distance to your address (km) <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        id="delivery-km"
-                        type="number"
-                        min={0.1}
-                        step={0.1}
-                        value={deliveryKm}
-                        onChange={(e) => {
-                          setDeliveryKm(e.target.value);
-                          if (errors.deliveryKm) {
-                            setErrors((prev: any) => {
-                              const next = { ...prev };
-                              delete next.deliveryKm;
-                              return next;
-                            });
-                          }
-                        }}
-                        className={`w-full max-w-xs px-4 py-3 border rounded-xl focus:ring-2 focus:ring-gsg-purple focus:border-gsg-purple transition-all outline-none ${
-                          errors.deliveryKm ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white'
-                        }`}
-                        placeholder="e.g. 8"
-                      />
-                      <p className="text-xs text-gray-500 mt-1.5">
-                        Approximate km from Accra to your delivery address (Google Maps is fine). Used to calculate your delivery total.
-                      </p>
-                      {errors.deliveryKm && (
-                        <p className="text-xs text-red-500 mt-1 font-medium">{errors.deliveryKm}</p>
-                      )}
-                    </div>
+                    <DeliveryLocationPicker
+                      valueKm={deliveryKm}
+                      error={errors.deliveryKm}
+                      onDistanceChange={(km) => {
+                        setDeliveryKm(km);
+                        if (errors.deliveryKm) {
+                          setErrors((prev: any) => {
+                            const next = { ...prev };
+                            delete next.deliveryKm;
+                            return next;
+                          });
+                        }
+                      }}
+                      onPlaceFill={({ city, region, addressHint }) => {
+                        setShippingData((prev) => ({
+                          ...prev,
+                          ...(city ? { city } : {}),
+                          ...(region ? { region } : {}),
+                          ...(addressHint && !prev.address ? { address: addressHint } : {}),
+                        }));
+                      }}
+                    />
 
                     {checkoutType === 'account' && (
                       <label className="flex items-center space-x-3 cursor-pointer group">
@@ -780,7 +771,7 @@ export default function CheckoutPage() {
               shippingLabel="Delivery"
               shippingNote={
                 !(kmValue > 0)
-                  ? 'Enter your address details to see the delivery total.'
+                  ? 'Search your delivery location to see the delivery total.'
                   : null
               }
             />

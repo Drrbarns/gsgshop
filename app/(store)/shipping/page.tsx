@@ -128,8 +128,8 @@ export default function ShippingPage() {
             </div>
             <h2 className="text-2xl font-bold text-gsg-black mb-3">Delivery Total at Checkout</h2>
             <p className="text-gray-600 leading-relaxed mb-6">
-              Your delivery fee is calculated from your delivery address and shown as a clear total
-              before you pay — no surprises at payment.
+              Search your area or landmark at checkout — we calculate the distance from our Accra hub
+              and show your delivery total before you pay.
             </p>
             <Link
               href="/checkout"
