@@ -132,7 +132,7 @@ export default function MiniCart({ isOpen, onClose }: MiniCartProps) {
               </div>
 
               <p className="text-sm text-gray-600 mb-4 text-center">
-                Delivery fee calculated at checkout from our published km rates
+                Delivery total calculated at checkout after your address
               </p>
 
               <div className="space-y-3">

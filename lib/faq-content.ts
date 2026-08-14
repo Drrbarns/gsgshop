@@ -36,13 +36,13 @@ export const STORE_FAQS = [
     category: 'shipping',
     question: 'What are your delivery times?',
     answer:
-      'It depends on the delivery choice you pick at checkout. Sole Express and Joint Express run daily with 2hr, 6hr, 12hr, 24hr or 48hr slots after order confirmation — fresh and perishable items must use one of these. Free Delivery runs on Tuesdays and Fridays only, and your order must be confirmed before noon the preceding day. Pickup is ready within 72 hours of confirmation (excluding Sundays), and you collect at the location shared in your confirmation. Personal Shopper requests are scheduled separately once we confirm market prices with you. See Shipping for the full fee formulas.',
+      'It depends on the delivery choice you pick at checkout. Sole Express and Joint Express run daily with 2hr, 6hr, 12hr, 24hr or 48hr slots after order confirmation — fresh and perishable items must use one of these. Free Delivery runs on Tuesdays and Fridays only, and your order must be confirmed before noon the preceding day. Pickup is ready within 72 hours of confirmation (excluding Sundays), and you collect at the location shared in your confirmation. Personal Shopper requests are scheduled separately once we confirm market prices with you.',
   },
   {
     category: 'shipping',
     question: 'How much does shipping cost?',
     answer:
-      'We publish the formulas and show your exact fee at checkout before you pay. Sole Express = GH₵0.50 × km × 5 + 1.5% of your purchase total. Joint Express = (GH₵0.50 × km × 7 + 1.5% of purchase) ÷ 2 (you split with a neighbour). Free Delivery (Tue/Fri) = GH₵0.50 × km × 3 − 1% of purchase (larger carts can bring this to GH₵0). Pickup is GH₵0. Enter your distance from our GSG hub in km at checkout — or use the calculator on the Shipping page — to see the amount before you confirm.',
+      'Your delivery total is calculated from your delivery address and shown clearly at checkout before you pay. Pickup has no delivery fee. Sole Express, Joint Express, and Free Delivery (Tue/Fri) each have their own rate based on where you are — you only see the final amount for the option you pick.',
   },
   {
     category: 'shipping',

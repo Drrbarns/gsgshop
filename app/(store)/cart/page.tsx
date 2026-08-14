@@ -216,10 +216,7 @@ export default function CartPage() {
                       </span>
                     </div>
                     <p className="text-xs text-gray-500 leading-relaxed">
-                      Sole / Joint Express and Free Delivery use published km formulas.{' '}
-                      <Link href="/shipping#delivery-rates" className="text-gsg-purple font-semibold hover:underline">
-                        See rates
-                      </Link>
+                      Your delivery total appears after you enter your address at checkout.
                     </p>
                   </div>
 

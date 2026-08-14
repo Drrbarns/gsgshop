@@ -84,25 +84,25 @@ export default function CheckoutPage() {
     {
       value: 'free-delivery',
       label: 'Free Delivery (Tue/Fri)',
-      desc: 'GH₵0.50 × km × 3 − 1% of purchase. Confirm before noon the preceding day.',
+      desc: 'Tue/Fri only. Confirm before noon the preceding day. Total shown after your address.',
       href: null,
     },
     {
       value: 'sole-express',
       label: 'Sole Express Delivery (Daily)',
-      desc: 'GH₵0.50 × km × 5 + 1.5% of purchase. Required for fresh/perishable. 2hr–48hr slots.',
+      desc: 'Required for fresh/perishable. 2hr–48hr slots after confirmation.',
       href: null,
     },
     {
       value: 'joint-express',
       label: 'Joint Express – Myself & Neighbor (Daily)',
-      desc: '(GH₵0.50 × km × 7 + 1.5% of purchase) ÷ 2. Share with a neighbour; items stay private.',
+      desc: 'Share delivery with a neighbour; items stay private. 2hr–48hr slots.',
       href: null,
     },
     {
       value: 'pickup',
       label: 'Pickup (Within 72 Hrs.)',
-      desc: 'GH₵0 — no delivery fee. Collect within 72hrs (excl. Sunday) at the hub in your confirmation.',
+      desc: 'No delivery fee. Collect within 72hrs (excl. Sunday) at the hub in your confirmation.',
       href: null,
     },
   ];
@@ -172,9 +172,21 @@ export default function CheckoutPage() {
   };
 
   const handleContinueToDelivery = () => {
-    if (validateShipping()) {
-      setCurrentStep(2);
+    if (!validateShipping()) return;
+    // Distance is part of the address step so the fee total can show on delivery.
+    if (!(kmValue > 0)) {
+      setErrors((prev: any) => ({
+        ...prev,
+        deliveryKm: 'Please enter the distance to your delivery address (km).',
+      }));
+      return;
     }
+    setErrors((prev: any) => {
+      const next = { ...prev };
+      delete next.deliveryKm;
+      return next;
+    });
+    setCurrentStep(2);
   };
 
   const handleContinueToPayment = async () => {
@@ -523,6 +535,39 @@ export default function CheckoutPage() {
                       </div>
                     </div>
 
+                    <div>
+                      <label htmlFor="delivery-km" className="block text-sm font-bold text-gray-700 mb-2">
+                        Distance to your address (km) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        id="delivery-km"
+                        type="number"
+                        min={0.1}
+                        step={0.1}
+                        value={deliveryKm}
+                        onChange={(e) => {
+                          setDeliveryKm(e.target.value);
+                          if (errors.deliveryKm) {
+                            setErrors((prev: any) => {
+                              const next = { ...prev };
+                              delete next.deliveryKm;
+                              return next;
+                            });
+                          }
+                        }}
+                        className={`w-full max-w-xs px-4 py-3 border rounded-xl focus:ring-2 focus:ring-gsg-purple focus:border-gsg-purple transition-all outline-none ${
+                          errors.deliveryKm ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white'
+                        }`}
+                        placeholder="e.g. 8"
+                      />
+                      <p className="text-xs text-gray-500 mt-1.5">
+                        Approximate km from Accra to your delivery address (Google Maps is fine). Used to calculate your delivery total.
+                      </p>
+                      {errors.deliveryKm && (
+                        <p className="text-xs text-red-500 mt-1 font-medium">{errors.deliveryKm}</p>
+                      )}
+                    </div>
+
                     {checkoutType === 'account' && (
                       <label className="flex items-center space-x-3 cursor-pointer group">
                         <input
@@ -589,7 +634,7 @@ export default function CheckoutPage() {
                           <div className="text-right shrink-0">
                             <p className={`text-sm font-bold ${deliveryMethod === opt.value ? 'text-gsg-purple' : 'text-gsg-black'}`}>
                               {!showFee
-                                ? 'Enter km'
+                                ? '—'
                                 : preview.fee === 0
                                   ? 'GH₵0.00'
                                   : `GH₵${preview.fee.toFixed(2)}`}
@@ -599,57 +644,6 @@ export default function CheckoutPage() {
                       );
                     })}
                   </div>
-
-                  {needsKm && (
-                    <div className="mt-6 p-5 rounded-xl bg-purple-50 border border-purple-100">
-                      <label htmlFor="delivery-km" className="block font-bold text-gsg-black mb-1">
-                        Distance from GSG hub (km) <span className="text-red-500">*</span>
-                      </label>
-                      <p className="text-sm text-gray-600 mb-3">
-                        Used in the delivery formula. Check Google Maps from our hub to your address, or estimate — we&apos;ll confirm if needed.
-                      </p>
-                      <input
-                        id="delivery-km"
-                        type="number"
-                        min={0.1}
-                        step={0.1}
-                        value={deliveryKm}
-                        onChange={(e) => {
-                          setDeliveryKm(e.target.value);
-                          if (errors.deliveryKm) {
-                            setErrors((prev: any) => {
-                              const next = { ...prev };
-                              delete next.deliveryKm;
-                              return next;
-                            });
-                          }
-                        }}
-                        className={`w-full max-w-xs px-4 py-3 border-2 rounded-xl outline-none focus:border-gsg-purple ${
-                          errors.deliveryKm ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white'
-                        }`}
-                        placeholder="e.g. 8"
-                      />
-                      {errors.deliveryKm && (
-                        <p className="text-xs text-red-500 mt-1.5 font-medium">{errors.deliveryKm}</p>
-                      )}
-                      {kmValue > 0 && (
-                        <ul className="mt-4 space-y-1 text-sm text-gray-700">
-                          {deliveryBreakdown.lines.map((line) => (
-                            <li key={line} className="flex gap-2">
-                              <i className="ri-check-line text-gsg-purple mt-0.5" />
-                              <span>{line}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      <Link
-                        href="/shipping#delivery-rates"
-                        className="inline-block mt-3 text-sm font-semibold text-gsg-purple hover:underline"
-                      >
-                        See full rate formulas →
-                      </Link>
-                    </div>
-                  )}
 
                   {deliveryMethod === 'joint-express' && (
                     <div className="mt-6 p-5 rounded-xl bg-gray-50 border border-gray-200">
@@ -785,9 +779,9 @@ export default function CheckoutPage() {
               total={total}
               shippingLabel="Delivery"
               shippingNote={
-                needsKm && !(kmValue > 0)
-                  ? 'Enter distance (km) to calculate your delivery fee.'
-                  : deliveryBreakdown.formulaLabel
+                !(kmValue > 0)
+                  ? 'Enter your address details to see the delivery total.'
+                  : null
               }
             />
           </div>
