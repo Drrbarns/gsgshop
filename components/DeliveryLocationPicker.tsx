@@ -57,6 +57,7 @@ export default function DeliveryLocationPicker({
   const markerRef = useRef<LeafletMarker | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const distanceReqRef = useRef(0);
+  const hubRef = useRef<{ lat: number; lng: number }>(DEFAULT_CENTER);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -178,7 +179,8 @@ export default function DeliveryLocationPicker({
       }).addTo(mapRef.current);
 
       // Soft hub ring so customers see where we dispatch from
-      L.circle([GSG_HUB.lat, GSG_HUB.lng], {
+      // (live hub from admin settings; falls back to the compiled default)
+      L.circle([hubRef.current.lat, hubRef.current.lng], {
         radius: 900,
         color: '#7c3aed',
         weight: 1,
@@ -221,12 +223,23 @@ export default function DeliveryLocationPicker({
     setTimeout(() => mapRef.current?.invalidateSize(), 120);
   }, [fetchDistanceForCoords]);
 
-  // Boot map on Accra hub so the UI isn't empty
+  // Boot map on the live hub (from admin settings) so the ring and initial
+  // view match where distances are actually measured from.
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      try {
+        const res = await fetch('/api/delivery/settings');
+        const data = await res.json();
+        const hub = data?.settings?.hub;
+        if (Number.isFinite(hub?.lat) && Number.isFinite(hub?.lng)) {
+          hubRef.current = { lat: hub.lat, lng: hub.lng };
+        }
+      } catch {
+        // keep compiled default
+      }
       if (cancelled) return;
-      await ensureMap(DEFAULT_CENTER);
+      await ensureMap(hubRef.current);
     })();
     return () => {
       cancelled = true;

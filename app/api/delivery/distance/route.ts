@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit';
+import { checkRateLimit, getClientIdentifier } from '@/lib/rate-limit';
 import {
   distanceFromHubKm,
   estimateRoadKm,
@@ -185,7 +185,12 @@ async function resolveDistance(point: LatLng, label: string, city?: string | nul
 export async function POST(req: Request) {
   try {
     const clientId = getClientIdentifier(req);
-    const rate = checkRateLimit(`delivery-distance:${clientId}`, RATE_LIMITS.payment);
+    // Generous limit: every map tap / pin drag fires one request, so a
+    // customer exploring the map can easily send a burst of these.
+    const rate = checkRateLimit(`delivery-distance:${clientId}`, {
+      maxRequests: 40,
+      windowSeconds: 60,
+    });
     if (!rate.success) {
       return NextResponse.json(
         { success: false, message: 'Too many requests. Please try again shortly.' },
@@ -323,12 +328,16 @@ export async function GET(req: Request) {
     }));
   }
 
-  // Dedupe by rounded lat/lng
-  const seen = new Set<string>();
+  // Dedupe by rounded lat/lng AND by place name (popular list wins),
+  // so e.g. "Osu" doesn't show twice with slightly different coordinates.
+  const seenPoint = new Set<string>();
+  const seenName = new Set<string>();
   const suggestions = [...popular, ...geoSuggestions].filter((s) => {
-    const key = `${s.lat.toFixed(3)},${s.lng.toFixed(3)}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
+    const pointKey = `${s.lat.toFixed(3)},${s.lng.toFixed(3)}`;
+    const nameKey = s.name.trim().toLowerCase();
+    if (seenPoint.has(pointKey) || seenName.has(nameKey)) return false;
+    seenPoint.add(pointKey);
+    seenName.add(nameKey);
     return true;
   }).slice(0, 10);
 
