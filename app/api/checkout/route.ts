@@ -6,6 +6,7 @@ import {
   calculateDeliveryFee,
   methodNeedsDistance,
 } from '@/lib/delivery-pricing';
+import { getDeliverySettings } from '@/lib/delivery-settings';
 
 /**
  * POST /api/checkout — server-side order creation.
@@ -223,12 +224,14 @@ export async function POST(req: Request) {
             });
         }
 
-        // SECURITY: recompute delivery fee server-side from published formulas.
-        // Never trust a client-supplied shipping amount.
+        // SECURITY: recompute delivery fee server-side from the live admin
+        // pricing settings. Never trust a client-supplied shipping amount.
+        const deliverySettings = await getDeliverySettings();
         const delivery = calculateDeliveryFee({
             method: deliveryMethod,
             km: deliveryKm,
             purchaseTotal: subtotal,
+            config: deliverySettings.pricing,
         });
         const shippingCost = delivery.fee;
         const tax = 0;

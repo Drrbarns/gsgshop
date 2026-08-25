@@ -41,6 +41,7 @@ type ShopperRequest = {
     text?: string;
     location_label?: string | null;
     km?: number | null;
+    method?: string | null;
   } | null;
   preferred_time: string | null;
   notes: string | null;
@@ -651,6 +652,13 @@ export default function AdminShopperRequestDetail({ params }: { params: Promise<
                   <p className="text-gray-700 mt-0.5 text-sm">
                     {addressLabel || 'Selected area'}
                     {addressKm != null ? ` · ${addressKm.toFixed(1)} km from hub` : ''}
+                  </p>
+                )}
+                {request.delivery_address?.method && (
+                  <p className="text-purple-700 mt-0.5 text-xs font-semibold">
+                    {request.delivery_address.method === 'joint-express'
+                      ? 'Joint Express – Myself & Neighbor (Daily)'
+                      : 'Sole Express Delivery (Daily)'}
                   </p>
                 )}
                 <p className="text-gray-900 mt-0.5">{addressText || '—'}</p>

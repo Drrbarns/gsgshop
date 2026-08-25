@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyAuth } from '@/lib/auth';
+import { calculateDeliveryFee } from '@/lib/delivery-pricing';
+import { getDeliverySettings } from '@/lib/delivery-settings';
 
 export async function POST(request: Request) {
   try {
@@ -8,7 +10,7 @@ export async function POST(request: Request) {
     const {
       items, contactName, contactPhone, contactEmail,
       deliveryAddress, preferredTime, notes,
-      subtotalEst, totalEst,
+      subtotalEst,
     } = body;
     // "markup" is the canonical name; we still accept "commission" so any
     // stale client bundle out in the wild keeps working until everyone
@@ -19,11 +21,36 @@ export async function POST(request: Request) {
     const authResult = await verifyAuth(request);
     const userId = authResult.authenticated && authResult.user ? authResult.user.id : null;
 
+    // SECURITY: recompute the delivery fee server-side from the live admin
+    // pricing settings — never trust the client's fee. Older client bundles
+    // that don't send a method fall back to the pre-fee behaviour (fee 0).
+    const deliveryKmRaw = Number(body.deliveryKm);
+    const deliveryKm = Number.isFinite(deliveryKmRaw) ? Math.max(0, Math.min(500, deliveryKmRaw)) : 0;
+    const deliveryMethod =
+      body.deliveryMethod === 'joint-express' || body.deliveryMethod === 'sole-express'
+        ? body.deliveryMethod
+        : null;
+
+    let deliveryFee = 0;
+    if (deliveryMethod && deliveryKm > 0) {
+      const settings = await getDeliverySettings();
+      deliveryFee = calculateDeliveryFee({
+        method: deliveryMethod,
+        km: deliveryKm,
+        purchaseTotal: Math.max(0, Number(subtotalEst) || 0),
+        config: settings.pricing,
+      }).fee;
+    }
+
+    const safeSubtotal = Math.max(0, Number(subtotalEst) || 0);
+    const safeMarkup = Math.max(0, Number(markup) || 0);
+    const totalEst = safeSubtotal + safeMarkup + deliveryFee;
+
     // 1. Create Request
     //
     // Per docs/shopper-implementation-plan.md (section 7): customers pay the
-    // total estimate UPFRONT at submission. We therefore lock in
-    // total_final = totalEst and leave delivery_fee at 0 so the /pay/[id]
+    // total estimate UPFRONT at submission. We lock in
+    // total_final = totalEst (items + markup + delivery fee) so the /pay/[id]
     // page treats the request as immediately payable. The admin can still
     // recompute the total later via /api/shopper/requests/[id]/finalize if
     // market prices differ — that endpoint overwrites total_final, which the
@@ -33,13 +60,17 @@ export async function POST(request: Request) {
       .insert({
         user_id: userId,
         status: 'SUBMITTED',
-        subtotal_est: subtotalEst,
-        markup: markup,
+        subtotal_est: safeSubtotal,
+        markup: safeMarkup,
         total_est: totalEst,
         total_final: totalEst,
-        delivery_fee: 0,
+        delivery_fee: deliveryFee,
         notes: notes,
-        delivery_address: deliveryAddress,
+        delivery_address: {
+          ...(deliveryAddress && typeof deliveryAddress === 'object' ? deliveryAddress : { text: String(deliveryAddress || '') }),
+          km: deliveryKm || undefined,
+          method: deliveryMethod || undefined,
+        },
         preferred_time: preferredTime,
         contact_name: contactName,
         contact_phone: contactPhone,

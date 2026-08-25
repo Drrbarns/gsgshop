@@ -3,11 +3,11 @@ import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-lim
 import {
   distanceFromHubKm,
   estimateRoadKm,
-  GSG_HUB,
   haversineKm,
   searchPopularPlaces,
   type LatLng,
 } from '@/lib/delivery-hub';
+import { getDeliverySettings } from '@/lib/delivery-settings';
 
 /**
  * POST /api/delivery/distance
@@ -133,9 +133,9 @@ async function reverseGeocode(
   }
 }
 
-async function roadKmViaOsrm(dest: LatLng): Promise<number | null> {
+async function roadKmViaOsrm(dest: LatLng, hub: LatLng): Promise<number | null> {
   try {
-    const url = `https://router.project-osrm.org/route/v1/driving/${GSG_HUB.lng},${GSG_HUB.lat};${dest.lng},${dest.lat}?overview=false`;
+    const url = `https://router.project-osrm.org/route/v1/driving/${hub.lng},${hub.lat};${dest.lng},${dest.lat}?overview=false`;
     const res = await fetch(url, {
       headers: { Accept: 'application/json' },
       next: { revalidate: 0 },
@@ -151,8 +151,9 @@ async function roadKmViaOsrm(dest: LatLng): Promise<number | null> {
 }
 
 async function resolveDistance(point: LatLng, label: string, city?: string | null, region?: string | null, source?: string) {
-  const osrmKm = await roadKmViaOsrm(point);
-  const km = osrmKm ?? estimateRoadKm(haversineKm(GSG_HUB, point));
+  const { hub } = await getDeliverySettings();
+  const osrmKm = await roadKmViaOsrm(point, hub);
+  const km = osrmKm ?? estimateRoadKm(haversineKm(hub, point));
   const method = osrmKm != null ? 'road' : 'estimated';
 
   if (km > 500) {
@@ -175,9 +176,9 @@ async function resolveDistance(point: LatLng, label: string, city?: string | nul
     lng: point.lng,
     source: source || 'coords',
     method,
-    hub: GSG_HUB.label,
-    straightKm: Math.round(haversineKm(GSG_HUB, point) * 10) / 10,
-    fallbackKm: distanceFromHubKm(point),
+    hub: hub.label,
+    straightKm: Math.round(haversineKm(hub, point) * 10) / 10,
+    fallbackKm: distanceFromHubKm(point, hub),
   });
 }
 
@@ -280,6 +281,7 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get('q') || '').trim();
+  const { hub } = await getDeliverySettings();
 
   type SuggestionRow = {
     id: string;
@@ -301,7 +303,7 @@ export async function GET(req: Request) {
     region: p.region,
     lat: p.lat,
     lng: p.lng,
-    km: distanceFromHubKm({ lat: p.lat, lng: p.lng }),
+    km: distanceFromHubKm({ lat: p.lat, lng: p.lng }, hub),
     source: 'popular',
   }));
 
@@ -316,7 +318,7 @@ export async function GET(req: Request) {
       region: h.region || '',
       lat: h.point.lat,
       lng: h.point.lng,
-      km: distanceFromHubKm(h.point),
+      km: distanceFromHubKm(h.point, hub),
       source: 'geocode',
     }));
   }
@@ -330,5 +332,5 @@ export async function GET(req: Request) {
     return true;
   }).slice(0, 10);
 
-  return NextResponse.json({ success: true, suggestions, hub: GSG_HUB.label });
+  return NextResponse.json({ success: true, suggestions, hub: hub.label });
 }

@@ -1,9 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import DeliveryLocationPicker from '@/components/DeliveryLocationPicker';
+import { calculateDeliveryFee } from '@/lib/delivery-pricing';
+import { useDeliveryPricing } from '@/hooks/useDeliveryPricing';
+
+const SHOPPER_DELIVERY_OPTIONS = [
+  {
+    value: 'sole-express',
+    label: 'Sole Express Delivery (Daily)',
+    desc: 'Your own dedicated delivery. Required for fresh/perishable items. 2hr–48hr slots.',
+  },
+  {
+    value: 'joint-express',
+    label: 'Joint Express – Myself & Neighbor (Daily)',
+    desc: 'Share delivery with a neighbour and split the fee; items stay private. 2hr–48hr slots.',
+  },
+] as const;
 
 interface RequestItem {
   id: string;
@@ -25,6 +40,8 @@ export default function ShoppingList() {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryKm, setDeliveryKm] = useState('');
   const [deliveryLocationLabel, setDeliveryLocationLabel] = useState('');
+  const [deliveryMethod, setDeliveryMethod] = useState<'sole-express' | 'joint-express'>('sole-express');
+  const pricingConfig = useDeliveryPricing();
   const [preferredTime, setPreferredTime] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
@@ -76,8 +93,19 @@ export default function ShoppingList() {
 
   const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.estimatedPrice) || 0), 0);
   const markup = subtotal * 0.05;
-  const total = subtotal + markup;
   const kmValue = Math.max(0, parseFloat(deliveryKm) || 0);
+  const deliveryBreakdown = useMemo(
+    () =>
+      calculateDeliveryFee({
+        method: deliveryMethod,
+        km: kmValue,
+        purchaseTotal: subtotal,
+        config: pricingConfig,
+      }),
+    [deliveryMethod, kmValue, subtotal, pricingConfig]
+  );
+  const deliveryFee = kmValue > 0 ? deliveryBreakdown.fee : 0;
+  const total = subtotal + markup + deliveryFee;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,6 +137,7 @@ export default function ShoppingList() {
             text: deliveryAddress,
             location_label: deliveryLocationLabel || null,
             km: kmValue,
+            method: deliveryMethod,
           },
           preferredTime,
           notes,
@@ -116,6 +145,7 @@ export default function ShoppingList() {
           markup: markup,
           totalEst: total,
           deliveryKm: kmValue,
+          deliveryMethod,
         }),
       });
 
@@ -322,6 +352,69 @@ export default function ShoppingList() {
                     Add street details after selecting your area above.
                   </p>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Delivery Method *
+                  </label>
+                  <div className="space-y-3">
+                    {SHOPPER_DELIVERY_OPTIONS.map((opt) => {
+                      const preview = calculateDeliveryFee({
+                        method: opt.value,
+                        km: kmValue,
+                        purchaseTotal: subtotal,
+                        config: pricingConfig,
+                      });
+                      const selected = deliveryMethod === opt.value;
+                      return (
+                        <label
+                          key={opt.value}
+                          className={`flex items-start justify-between gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                            selected
+                              ? 'border-gsg-purple bg-purple-50'
+                              : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3 min-w-0">
+                            <div
+                              className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                                selected ? 'border-gsg-purple' : 'border-gray-300'
+                              }`}
+                            >
+                              {selected && <div className="w-2.5 h-2.5 rounded-full bg-gsg-purple"></div>}
+                            </div>
+                            <input
+                              type="radio"
+                              name="shopper-delivery"
+                              value={opt.value}
+                              checked={selected}
+                              onChange={() => setDeliveryMethod(opt.value)}
+                              className="hidden"
+                            />
+                            <div className="min-w-0">
+                              <p className={`font-bold text-sm ${selected ? 'text-gsg-purple' : 'text-gsg-black'}`}>
+                                {opt.label}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1 leading-relaxed text-pretty">{opt.desc}</p>
+                            </div>
+                          </div>
+                          <p
+                            className={`text-sm font-bold shrink-0 tabular-nums ${
+                              selected ? 'text-gsg-purple' : 'text-gsg-black'
+                            }`}
+                          >
+                            {kmValue > 0 ? `GH₵${preview.fee.toFixed(2)}` : '—'}
+                          </p>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {kmValue <= 0 && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Select your delivery location above to see the exact fees.
+                    </p>
+                  )}
+                </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">
                     Preferred Delivery Time
@@ -363,13 +456,22 @@ export default function ShoppingList() {
                   </div>
                   <div className="flex justify-between text-gray-600 text-sm">
                     <span>Distance</span>
-                    <span className="font-medium">
+                    <span className="font-medium tabular-nums">
                       {kmValue > 0 ? `${kmValue.toFixed(1)} km` : 'Select location'}
                     </span>
                   </div>
-                  <div className="flex justify-between text-gray-600 text-sm italic">
-                    <span>Delivery Fee</span>
-                    <span>Calculated later</span>
+                  <div className="flex justify-between text-gray-600">
+                    <span>
+                      Delivery Fee
+                      <span className="block text-[11px] text-gray-400">
+                        {deliveryMethod === 'sole-express'
+                          ? 'Sole Express (Daily)'
+                          : 'Joint Express – Myself & Neighbor'}
+                      </span>
+                    </span>
+                    <span className="font-medium tabular-nums">
+                      {kmValue > 0 ? `GH₵${deliveryFee.toFixed(2)}` : '—'}
+                    </span>
                   </div>
                   <div className="flex justify-between text-gray-600 text-sm italic">
                     <span>Sourcing Fee</span>

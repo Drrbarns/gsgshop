@@ -14,6 +14,7 @@ import {
   calculateDeliveryFee,
   methodNeedsDistance,
 } from '@/lib/delivery-pricing';
+import { useDeliveryPricing } from '@/hooks/useDeliveryPricing';
 import DeliveryLocationPicker from '@/components/DeliveryLocationPicker';
 
 export default function CheckoutPage() {
@@ -47,6 +48,7 @@ export default function CheckoutPage() {
 
   const [deliveryMethod, setDeliveryMethod] = useState('pickup');
   const [deliveryKm, setDeliveryKm] = useState('');
+  const pricingConfig = useDeliveryPricing();
   const [jointExpressNeighbor, setJointExpressNeighbor] = useState({ name: '', phone: '' });
   // 'moolre' = Mobile Money via Moolre. 'paystack' = Card payments via Paystack.
   const [paymentMethod, setPaymentMethod] = useState<'moolre' | 'paystack'>('moolre');
@@ -149,8 +151,9 @@ export default function CheckoutPage() {
         method: deliveryMethod,
         km: kmValue,
         purchaseTotal: subtotal,
+        config: pricingConfig,
       }),
-    [deliveryMethod, kmValue, subtotal]
+    [deliveryMethod, kmValue, subtotal, pricingConfig]
   );
   const shippingCost = deliveryBreakdown.fee;
   const tax = 0;
@@ -595,6 +598,7 @@ export default function CheckoutPage() {
                         method: opt.value,
                         km: kmValue || 0,
                         purchaseTotal: subtotal,
+                        config: pricingConfig,
                       });
                       const showFee =
                         opt.value === 'pickup' ||

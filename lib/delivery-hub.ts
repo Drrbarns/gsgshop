@@ -1,14 +1,17 @@
 /**
  * GSG dispatch hub + distance helpers.
- * Hub: East Legon, Accra (primary pickup/dispatch area).
+ * Default hub: GCB Bank Head Office, Thorpe Link, Accra Central —
+ * primary goods-sourcing area. Admin can override in Delivery Pricing settings.
  */
 
 export type LatLng = { lat: number; lng: number };
 
-export const GSG_HUB: LatLng & { label: string } = {
-  lat: 5.6355,
-  lng: -0.1538,
-  label: 'GSG Hub — East Legon, Accra',
+export type DeliveryHub = LatLng & { label: string };
+
+export const GSG_HUB: DeliveryHub = {
+  lat: 5.5434667,
+  lng: -0.2054859,
+  label: 'GSG Hub — GCB Bank Head Office, Thorpe Link, Accra',
 };
 
 /** Straight-line km (Haversine). */
@@ -87,6 +90,6 @@ export function searchPopularPlaces(query: string, limit = 8): PopularPlace[] {
   ).slice(0, limit);
 }
 
-export function distanceFromHubKm(dest: LatLng): number {
-  return estimateRoadKm(haversineKm(GSG_HUB, dest));
+export function distanceFromHubKm(dest: LatLng, hub: LatLng = GSG_HUB): number {
+  return estimateRoadKm(haversineKm(hub, dest));
 }
